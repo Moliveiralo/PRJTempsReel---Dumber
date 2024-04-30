@@ -70,52 +70,28 @@ private:
     /**********************************************************************/
     /* Tasks                                                              */
     /**********************************************************************/
-    RT_TASK th_startSupervisor;
-    RT_TASK th_sendtoMonitor;
-    RT_TASK th_sendImage;
-    RT_TASK th_receiveFromMonitor;
-    RT_TASK th_openRobotCommunication;
-    RT_TASK th_closeRobotCommunication;
-    RT_TASK th_watchRobotCommunication;
-    RT_TASK th_robotPosition;
-    RT_TASK th_stopRobotPosition;
+    RT_TASK th_server;
+    RT_TASK th_sendToMon;
+    RT_TASK th_receiveFromMon;
+    RT_TASK th_openComRobot;
     RT_TASK th_startRobot;
-    RT_TASK th_stopRobot;
-    RT_TASK th_moveRobot;
-    RT_TASK th_manageArena;
-    RT_TASK th_openCamera;
-    RT_TASK th_closeCamera;
-    RT_TASK th_detectCommunicationLossMonitor;
-    RT_TASK th_manageBatteryLevel;
-    RT_TASK th_sendToConsole;
-    RT_TASK th_closeServer;
-
-    
+    RT_TASK th_move;
     
     /**********************************************************************/
     /* Mutex                                                              */
     /**********************************************************************/
-    /* Mutex du code originel
     RT_MUTEX mutex_monitor;
     RT_MUTEX mutex_robot;
     RT_MUTEX mutex_robotStarted;
     RT_MUTEX mutex_move;
-    */
-    RT_SEM mutex_battery;
-    RT_SEM mutex_Watchdog;
-    RT_SEM mutex_PosRobot;
-    RT_SEM mutex_Arena;
 
     /**********************************************************************/
     /* Semaphores                                                         */
     /**********************************************************************/
     RT_SEM sem_barrier;
-    RT_SEM sem_connectionSurpervisorEstablished;
-    RT_SEM sem_openCamera;
+    RT_SEM sem_openComRobot;
     RT_SEM sem_serverOk;
     RT_SEM sem_startRobot;
-
-
 
     /**********************************************************************/
     /* Message queues                                                     */
@@ -129,77 +105,32 @@ private:
     /**
      * @brief Thread handling server communication with the monitor.
      */
-    void startSupervisorTask(void *arg);
+    void ServerTask(void *arg);
      
     /**
      * @brief Thread sending data to monitor.
      */
-    void sendMessageMonitorTask(void *arg);
+    void SendToMonTask(void *arg);
         
     /**
      * @brief Thread receiving data from monitor.
      */
-    void sendImageMonitorTask(void *arg);
+    void ReceiveFromMonTask(void *arg);
     
     /**
      * @brief Thread opening communication with the robot.
      */
-    void receiveMessageMonitorTask(void *arg);
+    void OpenComRobot(void *arg);
 
     /**
      * @brief Thread starting the communication with the robot.
      */
-    void manageRobotCommunicationTask(void *arg);
+    void StartRobotTask(void *arg);
     
     /**
      * @brief Thread handling control of the robot.
      */
-    void manageRobotPositionTask(void *arg);
-    
-    /**
-     * @brief Thread handling control of the robot.
-     */
-    void startRobotTask(void *arg);
-    
-    /**
-     * @brief Thread handling control of the robot.
-     */
-    void stopRobotTask(void *arg);
-    
-    /**
-     * @brief Thread handling control of the robot.
-     */
-    void moveRobotTask(void *arg);
-    
-    /**
-     * @brief Thread handling control of the robot.
-     */
-    void manageArenaTask(void *arg);
-    
-    /**
-     * @brief Thread handling control of the robot.
-     */
-    void manageCameraTask(void *arg);
-    
-    /**
-     * @brief Thread handling control of the robot.
-     */
-    void detectCommunicationLossMonitorTask(void *arg);
-    
-    /**
-     * @brief Thread handling control of the robot.
-     */
-    void manageBatteryLevelTask(void *arg);
-    
-    /**
-     * @brief Thread handling control of the robot.
-     */
-    void sendConsoleMessageTask(void *arg);
-    
-    /**
-     * @brief Thread handling control of the robot.
-     */
-    void closeServerTask(void *arg);
+    void MoveTask(void *arg);
     
     /**********************************************************************/
     /* Queue services                                                     */
@@ -221,4 +152,3 @@ private:
 };
 
 #endif // __TASKS_H__ 
-
