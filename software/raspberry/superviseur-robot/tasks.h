@@ -72,9 +72,11 @@ private:
     /**********************************************************************/
     RT_TASK th_startSupervisor;
     RT_TASK th_sendMessageMonitor;
-    RT_TASK th_sendImageMonitor;
+    RT_TASK th_sendImage;
     RT_TASK th_receiveMessageMonitor;
-    RT_TASK th_manageRobotCommunication;
+    RT_TASK th_openRobotCommunication;
+    RT_TASK th_closeRobotCommunication;
+    RT_TASK th_watchRobotCommunication;
     RT_TASK th_manageRobotPosition;
     RT_TASK th_startRobot;
     RT_TASK th_stopRobot;
