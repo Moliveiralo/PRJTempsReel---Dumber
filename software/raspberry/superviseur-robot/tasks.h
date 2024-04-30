@@ -71,21 +71,23 @@ private:
     /* Tasks                                                              */
     /**********************************************************************/
     RT_TASK th_startSupervisor;
-    RT_TASK th_sendMessageMonitor;
+    RT_TASK th_sendtoMonitor;
     RT_TASK th_sendImage;
-    RT_TASK th_receiveMessageMonitor;
+    RT_TASK th_receiveFromMonitor;
     RT_TASK th_openRobotCommunication;
     RT_TASK th_closeRobotCommunication;
     RT_TASK th_watchRobotCommunication;
-    RT_TASK th_manageRobotPosition;
+    RT_TASK th_robotPosition;
+    RT_TASK th_stopRobotPosition;
     RT_TASK th_startRobot;
     RT_TASK th_stopRobot;
     RT_TASK th_moveRobot;
     RT_TASK th_manageArena;
-    RT_TASK th_manageCamera;
+    RT_TASK th_openCamera;
+    RT_TASK th_closeCamera;
     RT_TASK th_detectCommunicationLossMonitor;
     RT_TASK th_manageBatteryLevel;
-    RT_TASK th_sendConsoleMessage;
+    RT_TASK th_sendToConsole;
     RT_TASK th_closeServer;
 
     
