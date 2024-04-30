@@ -95,18 +95,27 @@ private:
     /**********************************************************************/
     /* Mutex                                                              */
     /**********************************************************************/
+    /* Mutex du code originel
     RT_MUTEX mutex_monitor;
     RT_MUTEX mutex_robot;
     RT_MUTEX mutex_robotStarted;
     RT_MUTEX mutex_move;
+    */
+    RT_SEM mutex_battery;
+    RT_SEM mutex_Watchdog;
+    RT_SEM mutex_PosRobot;
+    RT_SEM mutex_Arena;
 
     /**********************************************************************/
     /* Semaphores                                                         */
     /**********************************************************************/
     RT_SEM sem_barrier;
-    RT_SEM sem_openComRobot;
+    RT_SEM sem_connectionSurpervisorEstablished;
+    RT_SEM sem_openCamera;
     RT_SEM sem_serverOk;
     RT_SEM sem_startRobot;
+
+
 
     /**********************************************************************/
     /* Message queues                                                     */
