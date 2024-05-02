@@ -65,17 +65,18 @@ private:
     ComMonitor monitor;
     ComRobot robot;
     int robotStarted = 0;
-    int move = MESSAGE_ROBOT_STOP;
+    int moveRobot = MESSAGE_ROBOT_STOP;
     
     /**********************************************************************/
     /* Tasks                                                              */
     /**********************************************************************/
     RT_TASK th_server;
-    RT_TASK th_sendToMon;
-    RT_TASK th_receiveFromMon;
-    RT_TASK th_openComRobot;
+    RT_TASK th_sendToMonitor;
+    RT_TASK th_receiveFromMonitor;
+    RT_TASK th_openRobotCommunication;
     RT_TASK th_startRobot;
-    RT_TASK th_move;
+    RT_TASK th_moveRobot;
+    RT_TASK th_manageBatteryLevel
     
     /**********************************************************************/
     /* Mutex                                                              */
@@ -83,13 +84,13 @@ private:
     RT_MUTEX mutex_monitor;
     RT_MUTEX mutex_robot;
     RT_MUTEX mutex_robotStarted;
-    RT_MUTEX mutex_move;
+    RT_MUTEX mutex_moveRobot;
 
     /**********************************************************************/
     /* Semaphores                                                         */
     /**********************************************************************/
     RT_SEM sem_barrier;
-    RT_SEM sem_openComRobot;
+    RT_SEM sem_openRobotCommunication;
     RT_SEM sem_serverOk;
     RT_SEM sem_startRobot;
 
@@ -110,17 +111,17 @@ private:
     /**
      * @brief Thread sending data to monitor.
      */
-    void SendToMonTask(void *arg);
+    void sendToMonitorTask(void *arg);
         
     /**
      * @brief Thread receiving data from monitor.
      */
-    void ReceiveFromMonTask(void *arg);
+    void receiveFromMonitorTask(void *arg);
     
     /**
      * @brief Thread opening communication with the robot.
      */
-    void OpenComRobot(void *arg);
+    void openRobotCommunication(void *arg);
 
     /**
      * @brief Thread starting the communication with the robot.
@@ -130,7 +131,12 @@ private:
     /**
      * @brief Thread handling control of the robot.
      */
-    void MoveTask(void *arg);
+    void moveRobotTask(void *arg);
+
+    /**
+     * @brief Thread handling control of the robot.
+     */
+    void manageBatteryLevelTask(void *arg);
     
     /**********************************************************************/
     /* Queue services                                                     */

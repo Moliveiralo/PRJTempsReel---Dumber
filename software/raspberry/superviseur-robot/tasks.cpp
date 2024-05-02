@@ -20,10 +20,10 @@
 
 // Déclaration des priorités des taches
 #define PRIORITY_TSERVER 30
-#define PRIORITY_TOPENCOMROBOT 20
-#define PRIORITY_TMOVE 20
+#define PRIORITY_TopenRobotCommunication 20
+#define PRIORITY_TmoveRobot 20
 #define PRIORITY_TSENDTOMON 22
-#define PRIORITY_TRECEIVEFROMMON 25
+#define PRIORITY_TreceiveFromMonitor 25
 #define PRIORITY_TSTARTROBOT 20
 #define PRIORITY_TCAMERA 21
 
@@ -69,7 +69,7 @@ void Tasks::Init() {
         cerr << "Error mutex create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_mutex_create(&mutex_move, NULL)) {
+    if (err = rt_mutex_create(&mutex_moveRobot, NULL)) {
         cerr << "Error mutex create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -82,7 +82,7 @@ void Tasks::Init() {
         cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_sem_create(&sem_openComRobot, NULL, 0, S_FIFO)) {
+    if (err = rt_sem_create(&sem_openRobotCommunication, NULL, 0, S_FIFO)) {
         cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -103,15 +103,15 @@ void Tasks::Init() {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_create(&th_sendToMon, "th_sendToMon", 0, PRIORITY_TSENDTOMON, 0)) {
+    if (err = rt_task_create(&th_sendToMonitoritoritor, "th_sendToMonitoritoritor", 0, PRIORITY_TSENDTOMON, 0)) {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_create(&th_receiveFromMon, "th_receiveFromMon", 0, PRIORITY_TRECEIVEFROMMON, 0)) {
+    if (err = rt_task_create(&th_receiveFromMonitor, "th_receiveFromMonitor", 0, PRIORITY_TreceiveFromMonitor, 0)) {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_create(&th_openComRobot, "th_openComRobot", 0, PRIORITY_TOPENCOMROBOT, 0)) {
+    if (err = rt_task_create(&th_openRobotCommunication, "th_openRobotCommunication", 0, PRIORITY_TopenRobotCommunication, 0)) {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -119,7 +119,7 @@ void Tasks::Init() {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_create(&th_move, "th_move", 0, PRIORITY_TMOVE, 0)) {
+    if (err = rt_task_create(&th_moveRobot, "th_moveRobot", 0, PRIORITY_TmoveRobot, 0)) {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -147,15 +147,15 @@ void Tasks::Run() {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_start(&th_sendToMon, (void(*)(void*)) & Tasks::SendToMonTask, this)) {
+    if (err = rt_task_start(&th_sendToMonitoritoritor, (void(*)(void*)) & Tasks::SendToMonTask, this)) {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_start(&th_receiveFromMon, (void(*)(void*)) & Tasks::ReceiveFromMonTask, this)) {
+    if (err = rt_task_start(&th_receiveFromMonitor, (void(*)(void*)) & Tasks::receiveFromMonitorTask, this)) {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_start(&th_openComRobot, (void(*)(void*)) & Tasks::OpenComRobot, this)) {
+    if (err = rt_task_start(&th_openRobotCommunication, (void(*)(void*)) & Tasks::openRobotCommunication, this)) {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -163,7 +163,7 @@ void Tasks::Run() {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_task_start(&th_move, (void(*)(void*)) & Tasks::MoveTask, this)) {
+    if (err = rt_task_start(&th_moveRobot, (void(*)(void*)) & Tasks::moveRobotTask, this)) {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -242,7 +242,7 @@ void Tasks::SendToMonTask(void* arg) {
 /**
  * @brief Thread receiving data from monitor.
  */
-void Tasks::ReceiveFromMonTask(void *arg) {
+void Tasks::receiveFromMonitorTask(void *arg) {
     Message *msgRcv;
     
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
@@ -250,7 +250,7 @@ void Tasks::ReceiveFromMonTask(void *arg) {
     rt_sem_p(&sem_barrier, TM_INFINITE);
     
     /**************************************************************************************/
-    /* The task receiveFromMon starts here                                                */
+    /* The task receiveFromMonitor starts here                                                */
     /**************************************************************************************/
     rt_sem_p(&sem_serverOk, TM_INFINITE);
     cout << "Received message from monitor activated" << endl << flush;
@@ -263,7 +263,7 @@ void Tasks::ReceiveFromMonTask(void *arg) {
             delete(msgRcv);
             exit(-1);
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_COM_OPEN)) {
-            rt_sem_v(&sem_openComRobot);
+            rt_sem_v(&sem_openRobotCommunication);
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_START_WITHOUT_WD)) {
             rt_sem_v(&sem_startRobot);
         } else if (msgRcv->CompareID(MESSAGE_ROBOT_GO_FORWARD) ||
@@ -272,9 +272,9 @@ void Tasks::ReceiveFromMonTask(void *arg) {
                 msgRcv->CompareID(MESSAGE_ROBOT_GO_RIGHT) ||
                 msgRcv->CompareID(MESSAGE_ROBOT_STOP)) {
 
-            rt_mutex_acquire(&mutex_move, TM_INFINITE);
-            move = msgRcv->GetID();
-            rt_mutex_release(&mutex_move);
+            rt_mutex_acquire(&mutex_moveRobot, TM_INFINITE);
+            moveRobot = msgRcv->GetID();
+            rt_mutex_release(&mutex_moveRobot);
         }
         delete(msgRcv); // mus be deleted manually, no consumer
     }
@@ -283,7 +283,7 @@ void Tasks::ReceiveFromMonTask(void *arg) {
 /**
  * @brief Thread opening communication with the robot.
  */
-void Tasks::OpenComRobot(void *arg) {
+void Tasks::openRobotCommunication(void *arg) {
     int status;
     int err;
 
@@ -292,10 +292,10 @@ void Tasks::OpenComRobot(void *arg) {
     rt_sem_p(&sem_barrier, TM_INFINITE);
     
     /**************************************************************************************/
-    /* The task openComRobot starts here                                                  */
+    /* The task openRobotCommunication starts here                                                  */
     /**************************************************************************************/
     while (1) {
-        rt_sem_p(&sem_openComRobot, TM_INFINITE);
+        rt_sem_p(&sem_openRobotCommunication, TM_INFINITE);
         cout << "Open serial com (";
         rt_mutex_acquire(&mutex_robot, TM_INFINITE);
         status = robot.Open();
@@ -335,7 +335,7 @@ void Tasks::StartRobotTask(void *arg) {
         cout << msgSend->GetID();
         cout << ")" << endl;
 
-        cout << "Movement answer: " << msgSend->ToString() << endl << flush;
+        cout << "moveRobotment answer: " << msgSend->ToString() << endl << flush;
         WriteInQueue(&q_messageToMon, msgSend);  // msgSend will be deleted by sendToMon
 
         if (msgSend->GetID() == MESSAGE_ANSWER_ACK) {
@@ -349,9 +349,9 @@ void Tasks::StartRobotTask(void *arg) {
 /**
  * @brief Thread handling control of the robot.
  */
-void Tasks::MoveTask(void *arg) {
+void Tasks::moveRobotTask(void *arg) {
     int rs;
-    int cpMove;
+    int cpmoveRobot;
     
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
     // Synchronization barrier (waiting that all tasks are starting)
@@ -364,19 +364,19 @@ void Tasks::MoveTask(void *arg) {
 
     while (1) {
         rt_task_wait_period(NULL);
-        cout << "Periodic movement update";
+        cout << "Periodic moveRobotment update";
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         rs = robotStarted;
         rt_mutex_release(&mutex_robotStarted);
         if (rs == 1) {
-            rt_mutex_acquire(&mutex_move, TM_INFINITE);
-            cpMove = move;
-            rt_mutex_release(&mutex_move);
+            rt_mutex_acquire(&mutex_moveRobot, TM_INFINITE);
+            cpmoveRobot = moveRobot;
+            rt_mutex_release(&mutex_moveRobot);
             
-            cout << " move: " << cpMove;
+            cout << " moveRobot: " << cpmoveRobot;
             
             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
-            robot.Write(new Message((MessageID)cpMove));
+            robot.Write(new Message((MessageID)cpmoveRobot));
             rt_mutex_release(&mutex_robot);
         }
         cout << endl << flush;
