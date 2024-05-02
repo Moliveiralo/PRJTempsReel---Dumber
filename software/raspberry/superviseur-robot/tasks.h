@@ -76,7 +76,7 @@ private:
     RT_TASK th_openRobotCommunication;
     RT_TASK th_startRobot;
     RT_TASK th_moveRobot;
-    RT_TASK th_manageBatteryLevel
+    RT_TASK th_manageBatteryLevel;
     
     /**********************************************************************/
     /* Mutex                                                              */
@@ -85,6 +85,7 @@ private:
     RT_MUTEX mutex_robot;
     RT_MUTEX mutex_robotStarted;
     RT_MUTEX mutex_moveRobot;
+    RT_MUTEX mutex_battery;
 
     /**********************************************************************/
     /* Semaphores                                                         */
@@ -93,6 +94,7 @@ private:
     RT_SEM sem_openRobotCommunication;
     RT_SEM sem_serverOk;
     RT_SEM sem_startRobot;
+    RT_SEM sem_getBattery;
 
     /**********************************************************************/
     /* Message queues                                                     */
@@ -134,7 +136,7 @@ private:
     void moveRobotTask(void *arg);
 
     /**
-     * @brief Thread handling control of the robot.
+     * @brief Thread handling the displaying of the battery level
      */
     void manageBatteryLevelTask(void *arg);
     

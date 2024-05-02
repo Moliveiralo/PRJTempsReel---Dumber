@@ -26,6 +26,7 @@
 #define PRIORITY_TreceiveFromMonitor 25
 #define PRIORITY_TSTARTROBOT 20
 #define PRIORITY_TCAMERA 21
+#define PRIORITY_TMANAGEBATTERYLEVEL 5
 
 /*
  * Some remarks:
@@ -73,6 +74,10 @@ void Tasks::Init() {
         cerr << "Error mutex create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
+	if (err = rt_mutex_create(&mutex_battery, NULL)) {
+		cerr << "Error mutex create : " << sterror(-err) << endl << flush;
+		exit (EXIT_FAILURE);
+	}
     cout << "Mutexes created successfully" << endl << flush;
 
     /**************************************************************************************/
@@ -94,6 +99,10 @@ void Tasks::Init() {
         cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
+	if (err = rt_sem_create(&sem_getBattery, NULL, 0, S_FIFO)) {
+		cerr << "Error semaphore create: " << sterror(-err) << endl << flush;
+		exit(EXIT_FAILURE);
+	}
     cout << "Semaphores created successfully" << endl << flush;
 
     /**************************************************************************************/
@@ -123,6 +132,10 @@ void Tasks::Init() {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
+	if (err = rt_task_create(&th_manageBatteryLevel, "th_manageBatteryLevel", 0, PRIORITY_TMANAGEBATTERYLEVEL, 0)){
+		cerr << "Error task create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+	}
     cout << "Tasks created successfully" << endl << flush;
 
     /**************************************************************************************/
