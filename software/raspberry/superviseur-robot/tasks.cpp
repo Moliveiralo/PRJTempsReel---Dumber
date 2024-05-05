@@ -180,6 +180,10 @@ void Tasks::Run() {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
+    if (err = rt_task_start(&th_manageBatteryLevel, (void(*)(void*)) & Tasks::manageBatteryLevelTask, this)) {
+        cerr << "Error task start: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
 
     cout << "Tasks launched" << endl << flush;
 }
@@ -397,6 +401,16 @@ void Tasks::moveRobotTask(void *arg) {
 }
 
 /**
+     * @brief Thread handling the displaying of the battery level
+     */
+void Tasks::manageBatteryLevelTask(void *arg){
+    cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
+    // Synchronization barrier (waiting that all tasks are starting)
+    rt_sem_p(&sem_barrier, TM_INFINITE);
+
+}
+
+/**
  * Write a message in a given queue
  * @param queue Queue identifier
  * @param msg Message to be stored
@@ -407,6 +421,10 @@ void Tasks::WriteInQueue(RT_QUEUE *queue, Message *msg) {
         cerr << "Write in queue failed: " << strerror(-err) << endl << flush;
         throw std::runtime_error{"Error in write in queue"};
     }
+
+    /**************************************************************************************/
+    /* The task starts here                                                               */
+    /**************************************************************************************/
 }
 
 /**
