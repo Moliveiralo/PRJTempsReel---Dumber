@@ -180,7 +180,10 @@ void Tasks::Run() {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-
+    if (err = rt_task_start(&th_manageBatteryLevel, (void(*)(void*)) &Tasks::manageBatteryLevelTask, this)) {
+        cerr << "Error task start: " << sterror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
     cout << "Tasks launched" << endl << flush;
 }
 
@@ -288,6 +291,8 @@ void Tasks::receiveFromMonitorTask(void *arg) {
             rt_mutex_acquire(&mutex_moveRobot, TM_INFINITE);
             moveRobot = msgRcv->GetID();
             rt_mutex_release(&mutex_moveRobot);
+        } else if (msgRcv->CompareID(MESSAGE_ROBOT_BATTERY_GET){
+            rt_sem_v(&sem_getBattery);
         }
         delete(msgRcv); // mus be deleted manually, no consumer
     }
@@ -377,7 +382,7 @@ void Tasks::moveRobotTask(void *arg) {
 
     while (1) {
         rt_task_wait_period(NULL);
-        cout << "Periodic moveRobotment update";
+        cout << "Periodic movement update";
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         rs = robotStarted;
         rt_mutex_release(&mutex_robotStarted);
@@ -393,6 +398,32 @@ void Tasks::moveRobotTask(void *arg) {
             rt_mutex_release(&mutex_robot);
         }
         cout << endl << flush;
+    }
+}
+
+/**
+* @brief Thread handling the displaying of the battery level
+*/
+void Tasks::manageBatteryLevelTask(void arg*) {
+    cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
+    // Synchronization barrier (waiting that all tasks are starting)
+    rt_sem_p(&sem_barrier, TM_INFINITE);
+
+    /**************************************************************************************/
+    /* The task starts here                                                               */
+    /**************************************************************************************/
+    rt_task_set_periodic(NULL, TM_NOW, 500000000);
+
+    while (1) {
+        rt_task_wait_period(NULL);
+        rt_sem_p(&sem_getBattery, TM_INFINITE);
+        cout << "Periodic update of the battery level" << endl;
+		// On recupere le niveau de la batterie du robot
+		rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+		msgSend = (MessageBattery*)robot.Write(new Message(MESSAGE_ROBOT_BATTERY_GET));
+		rt_mutex_release(&mutex_robotStarted);
+		// On rajoute ce niveau dans la file d'attente du robot
+		WriteInQueue(&q_messageToMon, msgSend);
     }
 }
 
