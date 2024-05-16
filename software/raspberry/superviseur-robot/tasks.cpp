@@ -427,6 +427,14 @@ void Tasks::manageBatteryLevelTask(void arg*) {
     }
 }
 
+void startCamera(void *arg){
+
+}
+
+void stopCamera(void *arg);
+
+void sendImageToMonitor(void *arg);
+
 /**
  * Write a message in a given queue
  * @param queue Queue identifier

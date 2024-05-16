@@ -139,6 +139,12 @@ private:
      * @brief Thread handling the displaying of the battery level
      */
     void manageBatteryLevelTask(void *arg);
+
+    void startCamera(void *arg);
+
+    void stopCamera(void *arg);
+
+    void sendImageToMonitor(void *arg);
     
     /**********************************************************************/
     /* Queue services                                                     */
