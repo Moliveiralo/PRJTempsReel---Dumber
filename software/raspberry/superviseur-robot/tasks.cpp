@@ -428,12 +428,45 @@ void Tasks::manageBatteryLevelTask(void arg*) {
 }
 
 void startCamera(void *arg){
+    cout << "Start startCamera task" << endl;
+
+    // Synchronization barrier (waiting that all tasks are starting)
+    rt_sem_p(&sem_barrier, TM_INFINITE);
+
+    /**************************************************************************************/
+    /* The task startCamera starts here                                                   */
+    /**************************************************************************************/
+
 
 }
 
-void stopCamera(void *arg);
+void stopCamera(void *arg){
+    cout << "Start stopCamera task" << endl;
 
-void sendImageToMonitor(void *arg);
+    // Synchronization barrier (waiting that all tasks are starting)
+    rt_sem_p(&sem_barrier, TM_INFINITE);
+
+    /**************************************************************************************/
+    /* The task stopCamera starts here                                                    */
+    /**************************************************************************************/
+}
+
+void sendImageToMonitor(void *arg){
+    MessageImg * msgSend;
+    int status;
+    int com_err;
+
+    cout << "Start sendImageToMonitor task" << endl;
+
+    // Synchronization barrier (waiting that all tasks are starting)
+    rt_sem_p(&sem_barrier, TM_INFINITE);
+
+    /**************************************************************************************/
+    /* The task sendImageToMonitor starts here                                            */
+    /**************************************************************************************/
+
+    rt_task_set_periodic(NULL, TM_NOW, 100000000); // Cette tâche est périodique toutes les 100ms
+}
 
 /**
  * Write a message in a given queue
