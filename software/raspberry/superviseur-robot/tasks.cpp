@@ -479,6 +479,7 @@ void sendImageToMonitor(void *arg){
     MessageImg * msgSend;
     int status;
     int com_err;
+    bool AskArena = false;
 
     cout << "Start sendImageToMonitor task" << endl;
 
@@ -489,9 +490,44 @@ void sendImageToMonitor(void *arg){
     /* The task sendImageToMonitor starts here                                            */
     /**************************************************************************************/
 
+    rt_sem_p(&sem_startSendingImage, TM_INFINITE); // Cette tâche restera bloquée tant que l'on
     rt_task_set_periodic(NULL, TM_NOW, 100000000); // Cette tâche est périodique toutes les 100ms
 
+    rt_mutex_acquire(&mutex_cam, TM_INFINITE);
+    while(camera->isOpen()) {
+    rt_mutex_release(&mutex_cam);
+        while(!AskArena) {
+            rt_mutex_acquire(&mutex_cam, TM_INFINITE);
+            Img img = camera->Grab();
 
+            if (!img.IsEmpty()) {
+                msgSend = new MessageImg(MESSAGE_CAM_IMAGE,&img);
+
+                WriteInQueue(&q_messageToMon, msgSend);
+                rt_mutex_release(&mutex_cam);
+
+                if (draw) {
+                    img.DrawArena(arena);
+                }
+            }
+        }
+        if (AskArena) {
+
+            Img last_image = camera->Grab();
+            if (!last_image.IsEmpty()) {
+                arena=last_image.SearchArena();
+
+                rt_sem_p(&sem_arena, TM_INFINITE);
+                if (draw) {
+                    last_image.DrawArena(arena);
+                }
+            }
+
+            rt_mutex_acquire(&mutex_askArena, TM_INFINITE);
+            AskArena=false;
+            rt_mutex_release(&mutex_askArena);
+        }
+    }
 
 }
 
