@@ -471,6 +471,8 @@ void sendImageToMonitor(void *arg){
 
     rt_task_set_periodic(NULL, TM_NOW, 100000000); // Cette tâche est périodique toutes les 100ms
 
+
+
 }
 
 /**
