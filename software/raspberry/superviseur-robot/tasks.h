@@ -64,6 +64,9 @@ private:
     /**********************************************************************/
     ComMonitor monitor;
     ComRobot robot;
+    Camera *cam; 
+    bool cameraOpen; // correspond a la demande d'ouverture de la camera
+    
     int robotStarted = 0;
     int moveRobot = MESSAGE_ROBOT_STOP;
     
@@ -77,6 +80,8 @@ private:
     RT_TASK th_startRobot;
     RT_TASK th_moveRobot;
     RT_TASK th_manageBatteryLevel;
+    RT_TASK th_openCamera; 
+    RT_TASK th_closeCamera; 
     
     /**********************************************************************/
     /* Mutex                                                              */
@@ -86,6 +91,8 @@ private:
     RT_MUTEX mutex_robotStarted;
     RT_MUTEX mutex_moveRobot;
     RT_MUTEX mutex_battery;
+    RT_MUTEX mutex_cameraOpen; 
+    RT_MUTEX mutex_cam; 
 
     /**********************************************************************/
     /* Semaphores                                                         */
@@ -95,6 +102,7 @@ private:
     RT_SEM sem_serverOk;
     RT_SEM sem_startRobot;
     RT_SEM sem_getBattery;
+    RT_SEM sem_startSendingImage; 
 
     /**********************************************************************/
     /* Message queues                                                     */
@@ -139,6 +147,16 @@ private:
      * @brief Thread handling the displaying of the battery level
      */
     void manageBatteryLevelTask(void *arg);
+    
+    /**
+     * @brief Thread opening the camera
+     */
+    void openCameraTask(void *arg);
+    
+    /**
+     * @brief Thread closing the camera
+     */
+    void closeCameraTask(void *arg); 
     
     /**********************************************************************/
     /* Queue services                                                     */
