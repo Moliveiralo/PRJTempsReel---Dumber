@@ -95,6 +95,8 @@ private:
     RT_MUTEX mutex_moveRobot;
     RT_MUTEX mutex_battery;
     RT_MUTEX mutex_arena;
+    RT_MUTEX mutex_stopSearchArena;
+    RT_MUTEX mutex_stopSendImageFromArenaSearch;
 
     /**********************************************************************/
     /* Semaphores                                                         */
@@ -111,8 +113,6 @@ private:
     RT_SEM sem_sendImageFromArenaSearch;
     RT_SEM sem_searchArena;
     RT_SEM sem_arenaOK;
-    RT_SEM sem_stopSearchArena;
-    RT_SEM sem_stopSendImageFromArenaSearch;
 
     /**********************************************************************/
     /* Message queues                                                     */

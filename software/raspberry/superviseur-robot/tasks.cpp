@@ -27,6 +27,10 @@
 #define PRIORITY_TSTARTROBOT 20
 #define PRIORITY_TCAMERA 21
 #define PRIORITY_TMANAGEBATTERYLEVEL 20
+#define PRIORITY_TSENDIMAGETOMONITOR 0
+#define PRIORITY_TOPENCAMERA 0
+#define PRIORITY_TCLOSECAMERA 0
+#define PRIORITY_TMANAGEARENA 0
 
 /*
  * Some remarks:
@@ -78,6 +82,18 @@ void Tasks::Init() {
 		cerr << "Error mutex create : " << strerror(-err) << endl << flush;
 		exit (EXIT_FAILURE);
 	}
+    if (err = rt_mutex_create(&mutex_arena, NULL)) {
+        cerr << "Error mutex create : " << strerror(-err) << endl << flush;
+        exit (EXIT_FAILURE);
+    }
+    if (err = rt_mutex_create(&mutex_stopSearchArena, NULL)) {
+        cerr << "Error mutex create : " << strerror(-err) << endl << flush;
+        exit (EXIT_FAILURE);
+    }
+    if (err = rt_mutex_create(&mutex_stopSendImageFromArenaSearch, NULL)) {
+        cerr << "Error mutex create : " << strerror(-err) << endl << flush;
+        exit (EXIT_FAILURE);
+    }
     cout << "Mutexes created successfully" << endl << flush;
 
     /**************************************************************************************/
@@ -131,14 +147,6 @@ void Tasks::Init() {
         cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_sem_create(&sem_stopSearchArena, NULL, 0, S_FIFO)) {
-        cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
-        exit(EXIT_FAILURE);
-    }
-    if (err = rt_sem_create(&sem_stopSendImageFromArenaSearch, NULL, 0, S_FIFO)) {
-        cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
-        exit(EXIT_FAILURE);
-    }
     cout << "Semaphores created successfully" << endl << flush;
 
     /**************************************************************************************/
@@ -172,6 +180,22 @@ void Tasks::Init() {
 		cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
 	}
+    if (err = rt_task_create(&th_manageBatteryLevel, "th_sendImageToMonitor", 0, PRIORITY_TMANAGEBATTERYLEVEL, 0)){
+        cerr << "Error task create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_task_create(&th_manageBatteryLevel, "th_openCamera", 0, PRIORITY_TMANAGEBATTERYLEVEL, 0)){
+        cerr << "Error task create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_task_create(&th_manageBatteryLevel, "th_closeCamera", 0, PRIORITY_TMANAGEBATTERYLEVEL, 0)){
+        cerr << "Error task create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_task_create(&th_manageBatteryLevel, "th_manageArena", 0, PRIORITY_TMANAGEBATTERYLEVEL, 0)){
+        cerr << "Error task create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
     cout << "Tasks created successfully" << endl << flush;
 
     /**************************************************************************************/
@@ -514,8 +538,8 @@ void Tasks::sendImageToMonitor(void *arg){
         while(!AskArena) {
             rt_mutex_acquire(&mutex_cam, TM_INFINITE);
 
-            if (camera->isOpen()){
-                Img img = camera->Grab();
+            if (cam->isOpen()){
+                Img img = cam->Grab();
 
                 if (!img.IsEmpty()) {
                     msgSend = new MessageImg(MESSAGE_CAM_IMAGE,&img);
