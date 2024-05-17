@@ -123,6 +123,22 @@ void Tasks::Init() {
         cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
+    if (err = rt_sem_create(&sem_searchArena, NULL, 0, S_FIFO)) {
+        cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_sem_create(&sem_arenaOK, NULL, 0, S_FIFO)) {
+        cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_sem_create(&sem_stopSearchArena, NULL, 0, S_FIFO)) {
+        cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_sem_create(&sem_stopSendImageFromArenaSearch, NULL, 0, S_FIFO)) {
+        cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
     cout << "Semaphores created successfully" << endl << flush;
 
     /**************************************************************************************/
@@ -450,7 +466,7 @@ void Tasks::manageBatteryLevelTask(void *arg){
     }
 }
 
-void startCamera(void *arg){
+void Tasks::startCamera(void *arg){
     cout << "Start startCamera task" << endl;
 
     // Synchronization barrier (waiting that all tasks are starting)
@@ -463,7 +479,7 @@ void startCamera(void *arg){
 
 }
 
-void stopCamera(void *arg){
+void Tasks::stopCamera(void *arg){
     cout << "Start stopCamera task" << endl;
 
     // Synchronization barrier (waiting that all tasks are starting)
@@ -475,10 +491,8 @@ void stopCamera(void *arg){
 
 }
 
-void sendImageToMonitor(void *arg){
+void Tasks::sendImageToMonitor(void *arg){
     MessageImg * msgSend;
-    int status;
-    int com_err;
     bool AskArena = false;
 
     cout << "Start sendImageToMonitor task" << endl;
@@ -490,27 +504,32 @@ void sendImageToMonitor(void *arg){
     /* The task sendImageToMonitor starts here                                            */
     /**************************************************************************************/
 
-    rt_sem_p(&sem_startSendingImage, TM_INFINITE); // Cette tâche restera bloquée tant que l'on
+    rt_sem_p(&sem_startSendingImage, TM_INFINITE); // Cette tâche restera bloquée tant que l'on ne demande pas l'envoi d'images au moniteur
     rt_task_set_periodic(NULL, TM_NOW, 100000000); // Cette tâche est périodique toutes les 100ms
 
-    rt_mutex_acquire(&mutex_cam, TM_INFINITE);
-    while(camera->isOpen()) {
-    rt_mutex_release(&mutex_cam);
+    while(1){
+        rt_task_wait_period(NULL);
+        cout << "Wait for sendImageToMonitor" << __PRETTY_FUNCTION__ << endl << flush;
+
         while(!AskArena) {
             rt_mutex_acquire(&mutex_cam, TM_INFINITE);
-            Img img = camera->Grab();
 
-            if (!img.IsEmpty()) {
-                msgSend = new MessageImg(MESSAGE_CAM_IMAGE,&img);
+            if (camera->isOpen()){
+                Img img = camera->Grab();
 
-                WriteInQueue(&q_messageToMon, msgSend);
-                rt_mutex_release(&mutex_cam);
+                if (!img.IsEmpty()) {
+                    msgSend = new MessageImg(MESSAGE_CAM_IMAGE,&img);
 
-                if (draw) {
-                    img.DrawArena(arena);
+                    WriteInQueue(&q_messageToMon, msgSend);
+                    rt_mutex_release(&mutex_cam);
+
+                    if (draw) {
+                        img.DrawArena(arena);
+                    }
                 }
             }
         }
+
         if (AskArena) {
 
             Img last_image = camera->Grab();
@@ -529,7 +548,30 @@ void sendImageToMonitor(void *arg){
         }
     }
 
+
 }
+
+RT_SEM sem_sendImageFromArenaSearch;
+RT_SEM sem_arenaOK;
+
+RT_SEM sem_stopSearchArena;
+RT_SEM sem_stopSendImageFromArenaSearch;
+
+void Tasks::manageArenaTask(void *arg){
+    cout << "Start sendImageToMonitor task" << endl;
+
+    // Synchronization barrier (waiting that all tasks are starting)
+    rt_sem_p(&sem_barrier, TM_INFINITE);
+
+    /**************************************************************************************/
+    /* The task sendImageToMonitor starts here                                            */
+    /**************************************************************************************/
+
+    rt_sem_p(&sem_searchArena, TM_INFINITE); // Cette tâche restera bloquée tant que l'on ne
+
+
+}
+
 
 /**
  * Write a message in a given queue

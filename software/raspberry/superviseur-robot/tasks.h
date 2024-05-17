@@ -66,6 +66,10 @@ private:
     ComRobot robot;
     int robotStarted = 0;
     int moveRobot = MESSAGE_ROBOT_STOP;
+    Arena arena;
+    bool stopSearchArena = false;
+    bool stopSendImageFromArenaSearch = false;
+
     
     /**********************************************************************/
     /* Tasks                                                              */
@@ -77,6 +81,10 @@ private:
     RT_TASK th_startRobot;
     RT_TASK th_moveRobot;
     RT_TASK th_manageBatteryLevel;
+    RT_TASK th_sendImageToMonitor;
+    RT_TASK th_openCamera;
+    RT_TASK th_closeCamera;
+    RT_TASK th_manageArena;
     
     /**********************************************************************/
     /* Mutex                                                              */
@@ -86,6 +94,7 @@ private:
     RT_MUTEX mutex_robotStarted;
     RT_MUTEX mutex_moveRobot;
     RT_MUTEX mutex_battery;
+    RT_MUTEX mutex_arena;
 
     /**********************************************************************/
     /* Semaphores                                                         */
@@ -100,6 +109,10 @@ private:
     RT_SEM sem_startSendingImage;
     RT_SEM sem_cameraClosed;
     RT_SEM sem_sendImageFromArenaSearch;
+    RT_SEM sem_searchArena;
+    RT_SEM sem_arenaOK;
+    RT_SEM sem_stopSearchArena;
+    RT_SEM sem_stopSendImageFromArenaSearch;
 
     /**********************************************************************/
     /* Message queues                                                     */
@@ -144,6 +157,26 @@ private:
      * @brief Thread handling the displaying of the battery level
      */
     void manageBatteryLevelTask(void *arg);
+
+    /**
+     * @brief Thread starting the camera
+     */
+    void startCamera(void *arg);
+
+    /**
+     * @brief Thread stopping the camera
+     */
+    void stopCamera(void *arg);
+
+    /**
+     * @brief Thread sending images from the camera to the monitor
+     */
+    void sendImageToMonitor(void *arg);
+
+    /**
+     * @brief Thread handling the research of the arena
+     */
+    void manageArenaTask(void *arg);
     
     /**********************************************************************/
     /* Queue services                                                     */
