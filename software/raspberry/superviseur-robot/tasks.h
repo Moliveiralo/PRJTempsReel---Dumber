@@ -108,7 +108,6 @@ private:
     RT_SEM sem_getBattery;
     RT_SEM sem_openCamera;
     RT_SEM sem_closeCamera;
-    RT_SEM sem_startSendingImage;
     RT_SEM sem_cameraClosed;
     RT_SEM sem_sendImageFromArenaSearch;
     RT_SEM sem_searchArena;

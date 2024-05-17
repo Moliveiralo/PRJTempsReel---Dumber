@@ -127,10 +127,6 @@ void Tasks::Init() {
         cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_sem_create(&sem_startSendingImage, NULL, 0, S_FIFO)) {
-        cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
-        exit(EXIT_FAILURE);
-    }
     if (err = rt_sem_create(&sem_cameraClosed, NULL, 0, S_FIFO)) {
         cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
@@ -528,8 +524,11 @@ void Tasks::sendImageToMonitor(void *arg){
     /* The task sendImageToMonitor starts here                                            */
     /**************************************************************************************/
 
-    rt_sem_p(&sem_startSendingImage, TM_INFINITE); // Cette tâche restera bloquée tant que l'on ne demande pas l'envoi d'images au moniteur
     rt_task_set_periodic(NULL, TM_NOW, 100000000); // Cette tâche est périodique toutes les 100ms
+
+    sendImage;
+    mutex_sendImage;
+
 
     while(1){
         rt_task_wait_period(NULL);
@@ -577,18 +576,17 @@ void Tasks::sendImageToMonitor(void *arg){
 
 RT_SEM sem_sendImageFromArenaSearch;
 RT_SEM sem_arenaOK;
-
-RT_SEM sem_stopSearchArena;
-RT_SEM sem_stopSendImageFromArenaSearch;
+RT_MUTEX mutex_stopSearchArena;
+RT_MUTEX mutex_stopSendImageFromArenaSearch;
 
 void Tasks::manageArenaTask(void *arg){
-    cout << "Start sendImageToMonitor task" << endl;
+    cout << "Start manageArenaTask task" << endl;
 
     // Synchronization barrier (waiting that all tasks are starting)
     rt_sem_p(&sem_barrier, TM_INFINITE);
 
     /**************************************************************************************/
-    /* The task sendImageToMonitor starts here                                            */
+    /* The task manageArenaTask starts here                                            */
     /**************************************************************************************/
 
     rt_sem_p(&sem_searchArena, TM_INFINITE); // Cette tâche restera bloquée tant que l'on ne
