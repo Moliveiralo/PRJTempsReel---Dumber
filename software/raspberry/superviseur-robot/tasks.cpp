@@ -513,7 +513,6 @@ void Tasks::stopCamera(void *arg){
 
 void Tasks::sendImageToMonitor(void *arg){
     MessageImg * msgSend;
-    bool AskArena = false;
 
     cout << "Start sendImageToMonitor task" << endl;
 
@@ -526,48 +525,25 @@ void Tasks::sendImageToMonitor(void *arg){
 
     rt_task_set_periodic(NULL, TM_NOW, 100000000); // Cette tâche est périodique toutes les 100ms
 
-    sendImage;
-    mutex_sendImage;
-
-
     while(1){
         rt_task_wait_period(NULL);
         cout << "Wait for sendImageToMonitor" << __PRETTY_FUNCTION__ << endl << flush;
 
-        while(!AskArena) {
-            rt_mutex_acquire(&mutex_cam, TM_INFINITE);
+        rt_mutex_acquire(&mutex_sendImage, TM_INFINITE);
+        rt_mutex_acquire(&mutex_cam, TM_INFINITE);
+        if ((cam->isOpen()) && (sendImage)){
+            Img img = cam->Grab();
 
-            if (cam->isOpen()){
-                Img img = cam->Grab();
+            if (!img.IsEmpty()) {
+                msgSend = new MessageImg(MESSAGE_CAM_IMAGE,&img);
 
-                if (!img.IsEmpty()) {
-                    msgSend = new MessageImg(MESSAGE_CAM_IMAGE,&img);
+                WriteInQueue(&q_messageToMon, msgSend);
+                rt_mutex_release(&mutex_cam);
 
-                    WriteInQueue(&q_messageToMon, msgSend);
-                    rt_mutex_release(&mutex_cam);
-
-                    if (draw) {
-                        img.DrawArena(arena);
-                    }
-                }
-            }
-        }
-
-        if (AskArena) {
-
-            Img last_image = camera->Grab();
-            if (!last_image.IsEmpty()) {
-                arena=last_image.SearchArena();
-
-                rt_sem_p(&sem_arena, TM_INFINITE);
                 if (draw) {
-                    last_image.DrawArena(arena);
+                    img.DrawArena(arena);
                 }
             }
-
-            rt_mutex_acquire(&mutex_askArena, TM_INFINITE);
-            AskArena=false;
-            rt_mutex_release(&mutex_askArena);
         }
     }
 
@@ -591,7 +567,19 @@ void Tasks::manageArenaTask(void *arg){
 
     rt_sem_p(&sem_searchArena, TM_INFINITE); // Cette tâche restera bloquée tant que l'on ne
 
+    Img last_image = camera->Grab();
 
+    if (!last_image.IsEmpty()) {
+        arena=last_image.SearchArena();
+
+        rt_sem_p(&sem_arena, TM_INFINITE);
+        if (draw) {
+            last_image.DrawArena(arena);
+        }
+    }
+
+    rt_mutex_acquire(&mutex_askArena, TM_INFINITE);
+    rt_mutex_release(&mutex_askArena);
 }
 
 
