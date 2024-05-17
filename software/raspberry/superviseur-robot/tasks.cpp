@@ -486,7 +486,7 @@ void Tasks::manageBatteryLevelTask(void *arg){
     }
 }
 
-void Tasks::startCamera(void *arg){
+void Tasks::startCameraTask(void *arg){
     cout << "Start startCamera task" << endl;
 
     // Synchronization barrier (waiting that all tasks are starting)
@@ -499,7 +499,7 @@ void Tasks::startCamera(void *arg){
 
 }
 
-void Tasks::stopCamera(void *arg){
+void Tasks::stopCameraTask(void *arg){
     cout << "Start stopCamera task" << endl;
 
     // Synchronization barrier (waiting that all tasks are starting)
@@ -511,7 +511,7 @@ void Tasks::stopCamera(void *arg){
 
 }
 
-void Tasks::sendImageToMonitor(void *arg){
+void Tasks::sendImageToMonitorTask(void *arg){
     MessageImg * msgSend;
 
     cout << "Start sendImageToMonitor task" << endl;

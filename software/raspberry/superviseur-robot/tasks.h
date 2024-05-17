@@ -160,17 +160,17 @@ private:
     /**
      * @brief Thread starting the camera
      */
-    void startCamera(void *arg);
+    void startCameraTask(void *arg);
 
     /**
      * @brief Thread stopping the camera
      */
-    void stopCamera(void *arg);
+    void stopCameraTask(void *arg);
 
     /**
      * @brief Thread sending images from the camera to the monitor
      */
-    void sendImageToMonitor(void *arg);
+    void sendImageToMonitorTask(void *arg);
 
     /**
      * @brief Thread handling the research of the arena
