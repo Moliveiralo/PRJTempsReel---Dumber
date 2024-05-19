@@ -124,6 +124,7 @@ private:
     RT_SEM sem_sendImageFromArenaSearch;
     RT_SEM sem_searchArena;
     RT_SEM sem_arenaAns;
+    RT_SEM sem_flowImage; 
 
     /**********************************************************************/
     /* Message queues                                                     */
