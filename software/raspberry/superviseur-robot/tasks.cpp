@@ -31,7 +31,7 @@
 #define PRIORITY_TMANAGEBATTERYLEVEL 20
 #define PRIORITY_TOPENCAMERA 23
 #define PRIORITY_TCLOSECAMERA 22
-#define PRIORITY_TSENDIMAGETOMONITOR 25
+#define PRIORITY_TSENDIMAGETOMONITOR 21
 #define PRIORITY_TMANAGEARENA 22
 
 /*
@@ -150,6 +150,10 @@ void Tasks::Init() {
         exit(EXIT_FAILURE);
     }
     if (err = rt_sem_create(&sem_arenaAns, NULL, 0, S_FIFO)) {
+        cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_sem_create(&sem_flowImage, NULL, 0, S_FIFO)) {
         cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -395,20 +399,22 @@ void Tasks::receiveFromMonitorTask(void *arg) {
             rt_sem_v(&sem_closeCamera);
             cout << "demande fermeture camera" << endl; 
         }
-        else if (msgRcv->compareID(MESSAGE_CAM_ASK_ARENA)){
+        else if (msgRcv->CompareID(MESSAGE_CAM_ASK_ARENA)){
             rt_sem_v(&sem_searchArena); 
         }
-        else if (msgRcv->compareID(MESSAGE_CAM_ARENA_CONFIRM)){
-            rt_sem_v(&sem_arenaAns); 
+        else if (msgRcv->CompareID(MESSAGE_CAM_ARENA_CONFIRM)){
+            cout << "arena confirmed" << endl; 
             rt_mutex_acquire(&mutex_arenaOK, TM_INFINITE); 
             arenaOK = true;
             rt_mutex_release(&mutex_arenaOK); 
+            rt_sem_v(&sem_arenaAns); // il faut debloquer le semaphore apres
         }
-        else if (msgRcv->compareID(MESSAGE_CAM_ARENA_INFIRM)){
-            rt_sem_v(&sem_arenaAns); 
+        else if (msgRcv->CompareID(MESSAGE_CAM_ARENA_INFIRM)){
+            cout << "arena infirmed" << endl;  
             rt_mutex_acquire(&mutex_arenaOK, TM_INFINITE); 
             arenaOK = false;
             rt_mutex_release(&mutex_arenaOK); 
+            rt_sem_v(&sem_arenaAns);
         }
         delete(msgRcv); // must be deleted manually, no consumer
     }
@@ -586,16 +592,14 @@ void Tasks::openCameraTask(void *arg) {
     /**************************************************************************************/
     while (1) {
         rt_sem_p(&sem_openCamera, TM_INFINITE);
-        cout << "On est dans open camera" << endl; 
+        
         // ouverture de la camera           
         rt_mutex_acquire(&mutex_cam, TM_INFINITE);
         cam->Open();
-        rt_mutex_release(&mutex_cam);   
-        // On passe le booleen de l'envoi d'image a 1 
-        rt_mutex_acquire(&mutex_sendImage, TM_INFINITE);
-        sendImage=true; 
-        cout << "Task open Camera : sendImage = "<< sendImage << endl;
-        rt_mutex_release(&mutex_sendImage);       
+        rt_mutex_release(&mutex_cam);  
+        
+        // On active l'envoi d'image periodique via le semaphore 
+        rt_sem_v(&sem_flowImage); 
     }
 }
 
@@ -613,20 +617,19 @@ void Tasks::closeCameraTask(void *arg) {
     /**************************************************************************************/
     
     
-    /*while (1) {
+    while (1) {
         rt_sem_p(&sem_closeCamera, TM_INFINITE);
-        // On demande l'arret de l'envoi d'image
-        rt_mutex_acquire(&mutex_sendImage, TM_INFINITE);
-        sendImage=false; 
-        rt_mutex_release(&mutex_sendImage); 
+        cout << "on est dans close camera" << endl; 
+        // On arrete l'envoi d'image en bloquant le semaphore 
+        rt_sem_p(&sem_flowImage, TM_INFINITE);
+        cout << "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" << endl; 
         // fermeture de la camera           
         rt_mutex_acquire(&mutex_cam, TM_INFINITE);
-        if (cam->IsOpen()){
-            cam->Close();
-            cout << "le blem est la " << endl; 
-        }
+        cam->Close(); 
+        cout << "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" << endl; 
         rt_mutex_release(&mutex_cam);
-    }*/
+        cout << "cccccccccccccccccccccccccccccccccccccccccccccccccc" << endl; 
+    }
 }
 
 /**
@@ -647,9 +650,9 @@ void Tasks::sendImageToMonitorTask(void *arg){
     while(1){
         rt_task_wait_period(NULL);
         
-        rt_mutex_acquire(&mutex_sendImage, TM_INFINITE);
+        rt_sem_p(&sem_flowImage, TM_INFINITE); 
         rt_mutex_acquire(&mutex_cam, TM_INFINITE);
-        if ((cam->IsOpen()) && (sendImage)){
+        if (cam->IsOpen()){
             Img img = cam->Grab();
 
             msgSend = new MessageImg(MESSAGE_CAM_IMAGE,&img);
@@ -657,7 +660,7 @@ void Tasks::sendImageToMonitorTask(void *arg){
             WriteInQueue(&q_messageToMon, msgSend);
         }
         rt_mutex_release(&mutex_cam);
-        rt_mutex_release(&mutex_sendImage);
+        rt_sem_v(&sem_flowImage); 
     }
 
 
@@ -674,7 +677,10 @@ void Tasks::sendImageToMonitorTask(void *arg){
  */
 void Tasks::manageArenaTask(void *arg){
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
-
+    
+    Img* last_image;
+    Arena a ;
+    MessageImg* msgImg;
     // Synchronization barrier (waiting that all tasks are starting)
     rt_sem_p(&sem_barrier, TM_INFINITE);
 
@@ -683,39 +689,41 @@ void Tasks::manageArenaTask(void *arg){
     /**************************************************************************************/
 
     rt_sem_p(&sem_searchArena, TM_INFINITE); // Cette tâche restera bloquée tant que l'on ne lance pas la recherche de l'arène
-
-    cout << "0" << endl;
+    rt_sem_p(&sem_flowImage, TM_INFINITE); // Permet d'arreter l'envoi periodique d'image
     
+    // Acquisition de la derniere ilmage envoyee a la camera avanrt la demande de recherche d'arene
     rt_mutex_acquire(&mutex_cam, TM_INFINITE);
-    Img last_image = cam->Grab();
+    last_image = new Img(cam->Grab());
     rt_mutex_release(&mutex_cam);
     
-    cout << "1" << endl;
-
     rt_mutex_acquire(&mutex_arena, TM_INFINITE);
-    arena=last_image.SearchArena();
-    Arena a = arena;
+    arena=last_image->SearchArena();
+    a = arena;
     rt_mutex_release(&mutex_arena);
-       
-    cout << "2" << endl;
     
     if (!arena.IsEmpty()) {
-        cout << "Arene trouvee" << endl;
-        last_image.DrawArena(a);
+        cout << "Arena trouvee" << endl;
+        
+        // On dessine l'arene sur l'image de la camera que l'on envoie au moniteur
+        last_image->DrawArena(a);
+        msgImg = new MessageImg(MESSAGE_CAM_IMAGE, last_image);
+        WriteInQueue(&q_messageToMon, msgImg);
         
         rt_sem_p(&sem_arenaAns, TM_INFINITE); // On attend que l'utilisateur valide ou invalide l'arene
         rt_mutex_acquire(&mutex_arenaOK, TM_INFINITE); 
         if (arenaOK){
-            cout << "Arene validee" << endl; 
+            cout << "Arena confirmed" << endl; 
         } else {
-            cout << "Arene invalidee" << endl; 
+            cout << "Arena infirmed" << endl; 
         }
         rt_mutex_release(&mutex_arenaOK);        
-        
+        rt_sem_v(&sem_flowImage);
+    }
+    else {
+        cout << "Arena not found" << endl; 
+        WriteInQueue(&q_messageToMon, new Message(MESSAGE_ANSWER_NACK));
     }
 }
-
-
 
 /**
  * Write a message in a given queue
