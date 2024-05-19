@@ -64,12 +64,20 @@ private:
     /**********************************************************************/
     ComMonitor monitor;
     ComRobot robot;
+    
     int robotStarted = 0;
-    int moveRobot = MESSAGE_ROBOT_STOP;
-    Arena arena;
+    int moveRobot = MESSAGE_ROBOT_STOP; 
+    
+    bool getBattery=false; 
+    
+    Camera *cam = new Camera(); 
+    bool cameraOpen; // correspond a la demande d'ouverture de la camera
+    bool sendImage;  // correspond a la demande d'envoi periodique d'image 
+    
+    Arena arena; 
+    bool arenaOK=false; // passe a true si l'arene est validee 
     bool stopSearchArena = false;
     bool stopSendImageFromArenaSearch = false;
-
     
     /**********************************************************************/
     /* Tasks                                                              */
@@ -81,9 +89,9 @@ private:
     RT_TASK th_startRobot;
     RT_TASK th_moveRobot;
     RT_TASK th_manageBatteryLevel;
+    RT_TASK th_openCamera; 
+    RT_TASK th_closeCamera; 
     RT_TASK th_sendImageToMonitor;
-    RT_TASK th_openCamera;
-    RT_TASK th_closeCamera;
     RT_TASK th_manageArena;
     
     /**********************************************************************/
@@ -94,7 +102,11 @@ private:
     RT_MUTEX mutex_robotStarted;
     RT_MUTEX mutex_moveRobot;
     RT_MUTEX mutex_battery;
+    RT_MUTEX mutex_cameraOpen; 
+    RT_MUTEX mutex_cam; 
+    RT_MUTEX mutex_sendImage; 
     RT_MUTEX mutex_arena;
+    RT_MUTEX mutex_arenaOK; 
     RT_MUTEX mutex_stopSearchArena;
     RT_MUTEX mutex_stopSendImageFromArenaSearch;
 
@@ -106,12 +118,12 @@ private:
     RT_SEM sem_serverOk;
     RT_SEM sem_startRobot;
     RT_SEM sem_getBattery;
-    RT_SEM sem_openCamera;
-    RT_SEM sem_closeCamera;
-    RT_SEM sem_cameraClosed;
+    RT_SEM sem_openCamera; 
+    RT_SEM sem_closeCamera; 
+    RT_SEM sem_startSendingImage; 
     RT_SEM sem_sendImageFromArenaSearch;
     RT_SEM sem_searchArena;
-    RT_SEM sem_arenaOK;
+    RT_SEM sem_arenaAns;
 
     /**********************************************************************/
     /* Message queues                                                     */
@@ -156,17 +168,17 @@ private:
      * @brief Thread handling the displaying of the battery level
      */
     void manageBatteryLevelTask(void *arg);
-
+    
     /**
-     * @brief Thread starting the camera
+     * @brief Thread opening the camera
      */
-    void startCameraTask(void *arg);
-
+    void openCameraTask(void *arg);
+    
     /**
-     * @brief Thread stopping the camera
+     * @brief Thread closing the camera
      */
-    void stopCameraTask(void *arg);
-
+    void closeCameraTask(void *arg); 
+    
     /**
      * @brief Thread sending images from the camera to the monitor
      */
