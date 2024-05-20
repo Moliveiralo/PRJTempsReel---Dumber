@@ -112,6 +112,10 @@ void Tasks::Init() {
         cerr << "Error mutex create : " << strerror(-err) << endl << flush;
         exit (EXIT_FAILURE);
     }
+    if (err = rt_mutex_create(&mutex_errorRobot, NULL)) {
+        cerr << "Error mutex create : " << strerror(-err) << endl << flush;
+        exit (EXIT_FAILURE);
+    }
     cout << "Mutexes created successfully" << endl << flush;
 
     /**************************************************************************************/
@@ -165,7 +169,7 @@ void Tasks::Init() {
         cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
-    if (err = rt_sem_create(&sem_watchdog, NULL, 0, S_FIFO)) {
+    if (err = rt_sem_create(&sem_closeRobot, NULL, 0, S_FIFO)) {
         cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -395,7 +399,6 @@ void Tasks::receiveFromMonitorTask(void *arg) {
             rt_mutex_release(&mutex_watchdog);
             cout << "Demarrage du robot avec watchdog" << endl;
             rt_sem_v(&sem_startRobot);
-//            rt_sem_v(&sem_watchdog);
         }
         else if (msgRcv->CompareID(MESSAGE_ROBOT_GO_FORWARD) ||
                 msgRcv->CompareID(MESSAGE_ROBOT_GO_BACKWARD) ||
@@ -476,6 +479,45 @@ void Tasks::openRobotCommunication(void *arg) {
             msgSend = new Message(MESSAGE_ANSWER_ACK);
         }
         WriteInQueue(&q_messageToMon, msgSend); // msgSend will be deleted by sendToMon
+    }
+}
+
+void Tasks::closeRobotTask(void *arg) {
+    int status;
+    int com_error;
+
+    cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
+    // Synchronization barrier (waiting that all tasks are starting)
+    rt_sem_p(&sem_barrier, TM_INFINITE);
+
+    /**************************************************************************************/
+    /* The task closeComRobot starts here                                                  */
+    /**************************************************************************************/
+
+    while (1) {
+        rt_sem_p(&sem_closeRobot, TM_INFINITE);
+
+        rt_mutex_acquire(&mutex_errorRobot, TM_INFINITE);
+        com_error=errorRobot;
+        rt_mutex_release(&mutex_errorRobot);
+
+        rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+        cout << "Close  com ("<<flush;
+        status = robot.Close();
+        rt_mutex_release(&mutex_robot);
+        cout << status;
+        cout << ")" << endl << flush;
+
+
+        rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+        robotStarted = 0;
+        rt_mutex_release(&mutex_robotStarted);
+
+        rt_mutex_acquire(&mutex_moveRobot, TM_INFINITE);
+        moveRobot=MESSAGE_ROBOT_STOP;
+        rt_mutex_release(&mutex_moveRobot);
+
+
     }
 }
 
@@ -636,29 +678,72 @@ void Tasks::manageBatteryLevelTask(void *arg){
     }
 }
 
-void Tasks::HandleLostCommunication() {
+/**
+ * @brief Thread handling the communication with the robot.
+ */
+void Tasks::CheckRobotTask(void *arg) {
+    bool rs, wd;
+    int err_cmp = 0;
 
-    cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
+    Message * status;
 
-    // Synchronisation : attendre que toutes les tâches soient prêtes
+    cout << "Start CheckRobotTask" << __PRETTY_FUNCTION__ << endl << flush;
+    // Synchronization barrier (waiting that all tasks are starting)
     rt_sem_p(&sem_barrier, TM_INFINITE);
-    // Déconnecter la caméra
 
-    rt_mutex_acquire(&mutex_camera, TM_INFINITE);
-    camera.Close();
-    camstart = 0;
-    rt_mutex_release(&mutex_camera);
+    /**************************************************************************************/
+    /* The task starts here                                                               */
+    /**************************************************************************************/
+    rt_task_set_periodic(NULL, TM_NOW, 1000000);
 
 
-    //Arrêter le robot
-    rt_mutex_acquire(&mutex_robot, TM_INFINITE);
-    robot.Close();
-    rt_mutex_release(&mutex_robot);
+    while (1) {
+        rt_task_wait_period(NULL);
 
-    // Mettre à jour l'état du robot comme non démarré
-    rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
-    robotStarted = 0;
-    rt_mutex_release(&mutex_robotStarted);
+        rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+        rs = robotStarted;
+        rt_mutex_release(&mutex_robotStarted);
+
+        rt_mutex_acquire(&mutex_watchdog, TM_INFINITE);
+        wd = activateWatchdog;
+        rt_mutex_release(&mutex_watchdog);
+
+        if (rs && wd) {
+
+            rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+            status = robot.Write(new Message(MESSAGE_ROBOT_PING));
+            rt_mutex_release(&mutex_robot);
+
+            if (err_cmp >=3) {
+                err_cmp=0;
+                cout << "------Message : The communication with the robot has ended.------" << endl;
+                rt_mutex_acquire(&mutex_errorRobot, TM_INFINITE);
+                err_Robot = 1;
+                rt_mutex_release(&mutex_errorRobot);
+
+                rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+                robotStarted = 0;
+                rt_mutex_release(&mutex_robotStarted);
+
+                cout << "------Message : Closing the communication with the robot------" << endl;
+                rt_sem_v(&sem_closeRobot);
+                WriteInQueue(&q_messageToMon, new Message(MESSAGE_ANSWER_COM_ERROR));
+            }
+            else if (status->CompareID(MESSAGE_ANSWER_COM_ERROR)) {
+                err_cmp++;
+                cout << " status :  " << status->GetID()<< endl;
+                cout << " err_cmp: " << err_cmp << endl;
+                cout << " err_Robot :" << err_Robot << endl;
+                cout << " rs : " <<robotStarted << endl << flush;
+            }
+            else {
+                err_cmp=0;
+                cout << " err_cmp: " << err_cmp << endl;
+            }
+
+        }
+    }
+}
 
 
 /**
