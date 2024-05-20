@@ -137,6 +137,10 @@ void Tasks::Init() {
 	cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
 	exit(EXIT_FAILURE);
     }
+    if (err = rt_sem_create(&sem_closeCamera, NULL, 0, S_FIFO)) {
+	cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
+	exit(EXIT_FAILURE);
+    }
     if (err = rt_sem_create(&sem_startSendingImage, NULL, 0, S_FIFO)) {
 	cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
 	exit(EXIT_FAILURE);
@@ -592,7 +596,7 @@ void Tasks::openCameraTask(void *arg) {
     /**************************************************************************************/
     while (1) {
         rt_sem_p(&sem_openCamera, TM_INFINITE);
-        
+        cout << "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" << endl;
         // ouverture de la camera           
         rt_mutex_acquire(&mutex_cam, TM_INFINITE);
         cam->Open();
@@ -621,12 +625,12 @@ void Tasks::closeCameraTask(void *arg) {
         rt_sem_p(&sem_closeCamera, TM_INFINITE);
         cout << "on est dans close camera" << endl; 
         // On arrete l'envoi d'image en bloquant le semaphore 
-        rt_sem_p(&sem_flowImage, TM_INFINITE);
+        
         cout << "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" << endl; 
         // fermeture de la camera           
         rt_mutex_acquire(&mutex_cam, TM_INFINITE);
         cam->Close(); 
-        cout << "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" << endl; 
+         
         rt_mutex_release(&mutex_cam);
         cout << "cccccccccccccccccccccccccccccccccccccccccccccccccc" << endl; 
     }
