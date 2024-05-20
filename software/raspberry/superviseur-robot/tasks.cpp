@@ -385,6 +385,7 @@ void Tasks::receiveFromMonitorTask(void *arg) {
             rt_mutex_acquire(&mutex_watchdog, TM_INFINITE);
             activateWatchdog = false;
             rt_mutex_release(&mutex_watchdog);
+            cout << "Demarrage du robot sans watchdog" << endl;
             rt_sem_v(&sem_startRobot);
         }
         else if (msgRcv->CompareID(MESSAGE_ROBOT_START_WITH_WD)) {
@@ -392,6 +393,7 @@ void Tasks::receiveFromMonitorTask(void *arg) {
             rt_mutex_acquire(&mutex_watchdog, TM_INFINITE);
             activateWatchdog = true;
             rt_mutex_release(&mutex_watchdog);
+            cout << "Demarrage du robot avec watchdog" << endl;
             rt_sem_v(&sem_startRobot);
             rt_sem_v(&sem_watchdog);
         }
@@ -490,18 +492,51 @@ void Tasks::StartRobotTask(void *arg) {
     /**************************************************************************************/
     while (1) {
 
-        Message * msgSend;
+//        Message * msgSend;
+//        rt_sem_p(&sem_startRobot, TM_INFINITE);
+//        cout << "Start robot without watchdog (";
+//        rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+//        msgSend = robot.Write(robot.StartWithoutWD());
+//        rt_mutex_release(&mutex_robot);
+//        cout << msgSend->GetID();
+//        cout << ")" << endl;
+//
+//        cout << "movementRobot answer: " << msgSend->ToString() << endl << flush;
+//        WriteInQueue(&q_messageToMon, msgSend);  // msgSend will be deleted by sendToMon
+//
+//        if (msgSend->GetID() == MESSAGE_ANSWER_ACK) {
+//            rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+//            robotStarted = 1;
+//            rt_mutex_release(&mutex_robotStarted);
+//        }
+        Message *msgSend;
+
+        // Attendre que le sémaphore pour démarrer le robot soit disponible
         rt_sem_p(&sem_startRobot, TM_INFINITE);
-        cout << "Start robot without watchdog (";
-        rt_mutex_acquire(&mutex_robot, TM_INFINITE);
-        msgSend = robot.Write(robot.StartWithoutWD());
-        rt_mutex_release(&mutex_robot);
+
+        if (activateWatchdog == false) {
+            // Démarrer le robot sans watchdog
+            cout << "Start robot without watchdog (";
+            rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+            msgSend = robot.Write(robot.StartWithoutWD());
+            rt_mutex_release(&mutex_robot);
+        } else {
+            // Démarrer le robot avec watchdog
+            cout << "Start robot with watchdog (";
+            rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+            msgSend = robot.Write(robot.StartWithWD());
+            rt_mutex_release(&mutex_robot);
+        }
+
+        // Afficher l'ID et la réponse du mouvement
         cout << msgSend->GetID();
         cout << ")" << endl;
+        cout << "MovementRobot answer: " << msgSend->ToString() << endl << flush;
 
-        cout << "movementRobot answer: " << msgSend->ToString() << endl << flush;
-        WriteInQueue(&q_messageToMon, msgSend);  // msgSend will be deleted by sendToMon
+        // Envoyer le message dans la file de messages (msgSend sera supprimé par sendToMon)
+        WriteInQueue(&q_messageToMon, msgSend);
 
+        // Si la réponse est un accusé de réception, mettre à jour l'état du robot comme démarré
         if (msgSend->GetID() == MESSAGE_ANSWER_ACK) {
             rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
             robotStarted = 1;
