@@ -33,6 +33,8 @@
 #define PRIORITY_TCLOSECAMERA 22
 #define PRIORITY_TSENDIMAGETOMONITOR 21
 #define PRIORITY_TMANAGEARENA 22
+#define PRIORITY_TSTOPROBOT 23
+#define PRIORITY_TCHECKCOMROBOT 22
 
 /*
  * Some remarks:
@@ -84,23 +86,11 @@ void Tasks::Init() {
 	cerr << "Error mutex create : " << strerror(-err) << endl << flush;
 	exit (EXIT_FAILURE);
     }
-    if (err = rt_mutex_create(&mutex_cameraOpen, NULL)) {
-	cerr << "Error mutex create : " << strerror(-err) << endl << flush;
-	exit (EXIT_FAILURE);
-    }
     if (err = rt_mutex_create(&mutex_cam, NULL)) {
 	cerr << "Error mutex create : " << strerror(-err) << endl << flush;
 	exit (EXIT_FAILURE);
     }
     if (err = rt_mutex_create(&mutex_arena, NULL)) {
-        cerr << "Error mutex create : " << strerror(-err) << endl << flush;
-        exit (EXIT_FAILURE);
-    }
-    if (err = rt_mutex_create(&mutex_stopSearchArena, NULL)) {
-        cerr << "Error mutex create : " << strerror(-err) << endl << flush;
-        exit (EXIT_FAILURE);
-    }
-    if (err = rt_mutex_create(&mutex_stopSendImageFromArenaSearch, NULL)) {
         cerr << "Error mutex create : " << strerror(-err) << endl << flush;
         exit (EXIT_FAILURE);
     }
@@ -152,10 +142,6 @@ void Tasks::Init() {
     if (err = rt_sem_create(&sem_startSendingImage, NULL, 0, S_FIFO)) {
 	cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
 	exit(EXIT_FAILURE);
-    }
-    if (err = rt_sem_create(&sem_sendImageFromArenaSearch, NULL, 0, S_FIFO)) {
-        cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
-        exit(EXIT_FAILURE);
     }
     if (err = rt_sem_create(&sem_searchArena, NULL, 0, S_FIFO)) {
         cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
@@ -222,6 +208,14 @@ void Tasks::Init() {
         cerr << "Error task create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
+    if (err = rt_task_create(&th_stopRobot, "th_stopRobot", 0, PRIORITY_TSTOPROBOT, 0)){
+        cerr << "Error task create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_task_create(&th_checkRobotCommunication, "th_checkRobotCommunication", 0, PRIORITY_TCHECKCOMROBOT, 0)){
+        cerr << "Error task create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
     cout << "Tasks created successfully" << endl << flush;
 
     /**************************************************************************************/
@@ -283,6 +277,14 @@ void Tasks::Run() {
         exit(EXIT_FAILURE);
     }
     if (err = rt_task_start(&th_manageArena, (void(*)(void*)) &Tasks::manageArenaTask, this)) {
+        cerr << "Error task start: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_task_start(&th_stopRobot, (void(*)(void*)) &Tasks::closeRobotTask, this)) {
+        cerr << "Error task start: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_task_start(&th_checkRobotCommunication, (void(*)(void*)) &Tasks::CheckRobotTask, this)) {
         cerr << "Error task start: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -521,6 +523,7 @@ void Tasks::closeRobotTask(void *arg) {
     }
 }
 
+
 /**
  * @brief Thread starting the communication with the robot.
  */
@@ -678,6 +681,7 @@ void Tasks::manageBatteryLevelTask(void *arg){
     }
 }
 
+
 /**
  * @brief Thread handling the communication with the robot.
  */
@@ -718,7 +722,7 @@ void Tasks::CheckRobotTask(void *arg) {
                 err_cmp=0;
                 cout << "------Message : The communication with the robot has ended.------" << endl;
                 rt_mutex_acquire(&mutex_errorRobot, TM_INFINITE);
-                err_Robot = 1;
+                errorRobot = 1;
                 rt_mutex_release(&mutex_errorRobot);
 
                 rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
@@ -733,7 +737,7 @@ void Tasks::CheckRobotTask(void *arg) {
                 err_cmp++;
                 cout << " status :  " << status->GetID()<< endl;
                 cout << " err_cmp: " << err_cmp << endl;
-                cout << " err_Robot :" << err_Robot << endl;
+                cout << " errorRobot :" << errorRobot << endl;
                 cout << " rs : " <<robotStarted << endl << flush;
             }
             else {
@@ -787,16 +791,11 @@ void Tasks::closeCameraTask(void *arg) {
     
     while (1) {
         rt_sem_p(&sem_closeCamera, TM_INFINITE);
-        cout << "on est dans close camera" << endl; 
-        // On arrete l'envoi d'image en bloquant le semaphore 
-        
-        cout << "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" << endl; 
+ 
         // fermeture de la camera           
         rt_mutex_acquire(&mutex_cam, TM_INFINITE);
-        cam->Close(); 
-         
+        cam->Close();         
         rt_mutex_release(&mutex_cam);
-        cout << "cccccccccccccccccccccccccccccccccccccccccccccccccc" << endl; 
     }
 }
 
@@ -821,9 +820,22 @@ void Tasks::sendImageToMonitorTask(void *arg){
         rt_sem_p(&sem_flowImage, TM_INFINITE); 
         rt_mutex_acquire(&mutex_cam, TM_INFINITE);
         if (cam->IsOpen()){
-            Img img = cam->Grab();
-
-            msgSend = new MessageImg(MESSAGE_CAM_IMAGE,&img);
+            // Acquisition de l'image   
+            Img img = cam->Grab();            
+            
+            rt_mutex_acquire(&mutex_arenaOK, TM_INFINITE); 
+            if (arenaOK){
+                // Envoi de l'image avec le dessin de l'arene
+                rt_mutex_acquire(&mutex_arena, TM_INFINITE);
+                img.DrawArena(arena);
+                msgSend = new MessageImg(MESSAGE_CAM_IMAGE, &img);
+                rt_mutex_release(&mutex_arena);
+            } else {
+                // Envoi de l'image sans l'arene
+                msgSend = new MessageImg(MESSAGE_CAM_IMAGE,&img);; 
+            }
+            rt_mutex_release(&mutex_arenaOK);        
+            
 
             WriteInQueue(&q_messageToMon, msgSend);
         }
@@ -834,16 +846,9 @@ void Tasks::sendImageToMonitorTask(void *arg){
 
 }
 
-//RT_SEM sem_sendImageFromArenaSearch;
 //RT_SEM sem_arenaAns;
-//RT_MUTEX mutex_stopSearchArena;
-//RT_MUTEX mutex_stopSendImageFromArenaSearch;
 
-    monitor.AcceptClient();
 
-    // Afficher un message sur la console
-    cout << "System reset to initial state due to communication loss" << endl;
-}
 
 /**
  * @brief Thread managing the arena
@@ -864,7 +869,11 @@ void Tasks::manageArenaTask(void *arg){
     rt_sem_p(&sem_searchArena, TM_INFINITE); // Cette tâche restera bloquée tant que l'on ne lance pas la recherche de l'arène
     rt_sem_p(&sem_flowImage, TM_INFINITE); // Permet d'arreter l'envoi periodique d'image
     
-    // Acquisition de la derniere ilmage envoyee a la camera avanrt la demande de recherche d'arene
+    rt_mutex_acquire(&mutex_arenaOK, TM_INFINITE); 
+    arenaOK = false; 
+    rt_mutex_release(&mutex_arenaOK); 
+    
+    // Acquisition de la derniere image envoyee a la camera avanrt la demande de recherche d'arene
     rt_mutex_acquire(&mutex_cam, TM_INFINITE);
     last_image = new Img(cam->Grab());
     rt_mutex_release(&mutex_cam);
@@ -890,6 +899,8 @@ void Tasks::manageArenaTask(void *arg){
             cout << "Arena infirmed" << endl; 
         }
         rt_mutex_release(&mutex_arenaOK);        
+        
+        // On libere le semaphore pour que l'envoi d'image reprend
         rt_sem_v(&sem_flowImage);
     }
     else {
