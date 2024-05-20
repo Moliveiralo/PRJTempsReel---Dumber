@@ -395,7 +395,7 @@ void Tasks::receiveFromMonitorTask(void *arg) {
             rt_mutex_release(&mutex_watchdog);
             cout << "Demarrage du robot avec watchdog" << endl;
             rt_sem_v(&sem_startRobot);
-            rt_sem_v(&sem_watchdog);
+//            rt_sem_v(&sem_watchdog);
         }
         else if (msgRcv->CompareID(MESSAGE_ROBOT_GO_FORWARD) ||
                 msgRcv->CompareID(MESSAGE_ROBOT_GO_BACKWARD) ||
