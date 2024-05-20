@@ -108,6 +108,10 @@ void Tasks::Init() {
         cerr << "Error mutex create : " << strerror(-err) << endl << flush;
         exit (EXIT_FAILURE);
     }
+    if (err = rt_mutex_create(&mutex_watchdog, NULL)) {
+        cerr << "Error mutex create : " << strerror(-err) << endl << flush;
+        exit (EXIT_FAILURE);
+    }
     cout << "Mutexes created successfully" << endl << flush;
 
     /**************************************************************************************/
@@ -158,6 +162,10 @@ void Tasks::Init() {
         exit(EXIT_FAILURE);
     }
     if (err = rt_sem_create(&sem_flowImage, NULL, 0, S_FIFO)) {
+        cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_sem_create(&sem_watchdog, NULL, 0, S_FIFO)) {
         cerr << "Error semaphore create: " << strerror(-err) << endl << flush;
         exit(EXIT_FAILURE);
     }
@@ -373,8 +381,20 @@ void Tasks::receiveFromMonitorTask(void *arg) {
             rt_sem_v(&sem_openRobotCommunication);
         } 
         else if (msgRcv->CompareID(MESSAGE_ROBOT_START_WITHOUT_WD)) {
+            // Démarrer le robot sans watchdog
+            rt_mutex_acquire(&mutex_watchdog, TM_INFINITE);
+            activateWatchdog = false;
+            rt_mutex_release(&mutex_watchdog);
             rt_sem_v(&sem_startRobot);
-        } 
+        }
+        else if (msgRcv->CompareID(MESSAGE_ROBOT_START_WITH_WD)) {
+            // Démarrer le robot avec watchdog
+            rt_mutex_acquire(&mutex_watchdog, TM_INFINITE);
+            activateWatchdog = true;
+            rt_mutex_release(&mutex_watchdog);
+            rt_sem_v(&sem_startRobot);
+            rt_sem_v(&sem_watchdog);
+        }
         else if (msgRcv->CompareID(MESSAGE_ROBOT_GO_FORWARD) ||
                 msgRcv->CompareID(MESSAGE_ROBOT_GO_BACKWARD) ||
                 msgRcv->CompareID(MESSAGE_ROBOT_GO_LEFT) ||
@@ -479,7 +499,7 @@ void Tasks::StartRobotTask(void *arg) {
         cout << msgSend->GetID();
         cout << ")" << endl;
 
-        cout << "moveRobotment answer: " << msgSend->ToString() << endl << flush;
+        cout << "movementRobot answer: " << msgSend->ToString() << endl << flush;
         WriteInQueue(&q_messageToMon, msgSend);  // msgSend will be deleted by sendToMon
 
         if (msgSend->GetID() == MESSAGE_ANSWER_ACK) {
@@ -581,6 +601,30 @@ void Tasks::manageBatteryLevelTask(void *arg){
     }
 }
 
+void Tasks::HandleLostCommunication() {
+
+    cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
+
+    // Synchronisation : attendre que toutes les tâches soient prêtes
+    rt_sem_p(&sem_barrier, TM_INFINITE);
+    // Déconnecter la caméra
+
+    rt_mutex_acquire(&mutex_camera, TM_INFINITE);
+    camera.Close();
+    camstart = 0;
+    rt_mutex_release(&mutex_camera);
+
+
+    //Arrêter le robot
+    rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+    robot.Close();
+    rt_mutex_release(&mutex_robot);
+
+    // Mettre à jour l'état du robot comme non démarré
+    rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+    robotStarted = 0;
+    rt_mutex_release(&mutex_robotStarted);
+
 
 /**
  * @brief Thread opening the camera
@@ -675,6 +719,11 @@ void Tasks::sendImageToMonitorTask(void *arg){
 //RT_MUTEX mutex_stopSearchArena;
 //RT_MUTEX mutex_stopSendImageFromArenaSearch;
 
+    monitor.AcceptClient();
+
+    // Afficher un message sur la console
+    cout << "System reset to initial state due to communication loss" << endl;
+}
 
 /**
  * @brief Thread managing the arena

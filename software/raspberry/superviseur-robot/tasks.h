@@ -64,6 +64,8 @@ private:
     /**********************************************************************/
     ComMonitor monitor;
     ComRobot robot;
+
+    bool activateWatchdog = false; // Permet de savoir si le robot doit démarrer avec ou sans le watchdog
     
     int robotStarted = 0;
     int moveRobot = MESSAGE_ROBOT_STOP; 
@@ -72,7 +74,7 @@ private:
     
     Camera *cam = new Camera(); 
     bool cameraOpen; // correspond a la demande d'ouverture de la camera
-    bool sendImage;  // correspond a la demande d'envoi periodique d'image 
+    bool sendImage;  // correspond a la demande d'envoi periodique d'image
     
     Arena arena; 
     bool arenaOK=false; // passe a true si l'arene est validee 
@@ -93,6 +95,7 @@ private:
     RT_TASK th_closeCamera; 
     RT_TASK th_sendImageToMonitor;
     RT_TASK th_manageArena;
+    RT_TASK th_detectCommunicationLossMonitor;
     
     /**********************************************************************/
     /* Mutex                                                              */
@@ -109,6 +112,7 @@ private:
     RT_MUTEX mutex_arenaOK; 
     RT_MUTEX mutex_stopSearchArena;
     RT_MUTEX mutex_stopSendImageFromArenaSearch;
+    RT_MUTEX mutex_watchdog;
 
     /**********************************************************************/
     /* Semaphores                                                         */
@@ -124,7 +128,8 @@ private:
     RT_SEM sem_sendImageFromArenaSearch;
     RT_SEM sem_searchArena;
     RT_SEM sem_arenaAns;
-    RT_SEM sem_flowImage; 
+    RT_SEM sem_flowImage;
+    RT_SEM sem_watchdog;
 
     /**********************************************************************/
     /* Message queues                                                     */
