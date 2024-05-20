@@ -64,23 +64,19 @@ private:
     /**********************************************************************/
     ComMonitor monitor;
     ComRobot robot;
-
+    
     bool activateWatchdog = false; // Permet de savoir si le robot doit démarrer avec ou sans le watchdog
     
     int robotStarted = 0;
-    int moveRobot = MESSAGE_ROBOT_STOP;
+    int moveRobot = MESSAGE_ROBOT_STOP; 
     bool errorRobot = 0;
     
     bool getBattery=false; 
     
     Camera *cam = new Camera(); 
-    bool cameraOpen; // correspond a la demande d'ouverture de la camera
-    bool sendImage;  // correspond a la demande d'envoi periodique d'image
     
     Arena arena; 
     bool arenaOK=false; // passe a true si l'arene est validee 
-    bool stopSearchArena = false;
-    bool stopSendImageFromArenaSearch = false;
     
     /**********************************************************************/
     /* Tasks                                                              */
@@ -96,8 +92,8 @@ private:
     RT_TASK th_closeCamera; 
     RT_TASK th_sendImageToMonitor;
     RT_TASK th_manageArena;
-    RT_TASK th_detectCommunicationLossMonitor;
     RT_TASK th_stopRobot;
+    RT_TASK th_checkRobotCommunication;
     
     /**********************************************************************/
     /* Mutex                                                              */
@@ -107,13 +103,9 @@ private:
     RT_MUTEX mutex_robotStarted;
     RT_MUTEX mutex_moveRobot;
     RT_MUTEX mutex_battery;
-    RT_MUTEX mutex_cameraOpen; 
     RT_MUTEX mutex_cam; 
-    RT_MUTEX mutex_sendImage; 
     RT_MUTEX mutex_arena;
     RT_MUTEX mutex_arenaOK; 
-    RT_MUTEX mutex_stopSearchArena;
-    RT_MUTEX mutex_stopSendImageFromArenaSearch;
     RT_MUTEX mutex_watchdog;
     RT_MUTEX mutex_errorRobot;
 
@@ -128,10 +120,10 @@ private:
     RT_SEM sem_openCamera; 
     RT_SEM sem_closeCamera; 
     RT_SEM sem_startSendingImage; 
-    RT_SEM sem_sendImageFromArenaSearch;
     RT_SEM sem_searchArena;
     RT_SEM sem_arenaAns;
-    RT_SEM sem_flowImage;
+    RT_SEM sem_flowImage; 
+    RT_SEM sem_watchdog;
     RT_SEM sem_closeRobot;
 
     /**********************************************************************/
@@ -197,10 +189,9 @@ private:
      * @brief Thread handling the research of the arena
      */
     void manageArenaTask(void *arg);
-
-    /**
-     * @brief Thread handling the research of the arena
-     */
+    
+    void CheckRobotTask(void *arg);
+    
     void closeRobotTask(void *arg);
     
     /**********************************************************************/
