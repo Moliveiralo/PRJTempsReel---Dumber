@@ -62,21 +62,21 @@ private:
     /**********************************************************************/
     /* Shared data                                                        */
     /**********************************************************************/
-    ComMonitor monitor;
-    ComRobot robot;
+    ComMonitor monitor; // Objet moniteur
+    ComRobot robot; // Objet robot
     
     bool activateWatchdog = false; // Permet de savoir si le robot doit démarrer avec ou sans le watchdog
     
-    int robotStarted = 0;
-    int moveRobot = MESSAGE_ROBOT_STOP; 
-    bool errorRobot = 0;
+    int robotStarted = 0; // Permet de savoir si le robot est démarré ou non
+    int moveRobot = MESSAGE_ROBOT_STOP; // Contient l'instruction à envoyer au robot
+    int errorRobot = 0; // Compteur du nombre d'erreurs consécutives dans la communication avec le robot
     
-    bool getBattery=false; 
+    bool getBattery=false; // Permet de savoir si on doit acquérir le niveau de batterie du robot
     
-    Camera *cam = new Camera(); 
+    Camera *cam = new Camera(); // Objet caméra
     
-    Arena arena; 
-    bool arenaOK=false; // passe a true si l'arene est validee 
+    Arena arena; // Objet arène
+    bool arenaOK=false; // passe a true si l'arene est validee depuis le moniteur
     
     /**********************************************************************/
     /* Tasks                                                              */
@@ -189,9 +189,15 @@ private:
      * @brief Thread handling the research of the arena
      */
     void manageArenaTask(void *arg);
-    
+
+    /**
+     * @brief Thread checking the communication with the robot
+     */
     void CheckRobotTask(void *arg);
-    
+
+    /**
+     * @brief Thread closing the communication with the robot
+     */
     void closeRobotTask(void *arg);
     
     /**********************************************************************/

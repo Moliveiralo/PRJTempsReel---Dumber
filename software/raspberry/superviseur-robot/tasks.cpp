@@ -786,124 +786,133 @@ void Tasks::CheckRobotTask(void *arg) {
  */
 void Tasks::openCameraTask(void *arg) {
 
+    // Affiche le début de l'exécution de la fonction avec son nom pour le débogage
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
-    // Synchronization barrier (waiting that all tasks are starting)
+
+    // Barrière de synchronisation pour s'assurer que toutes les tâches sont en cours de démarrage
     rt_sem_p(&sem_barrier, TM_INFINITE);
-    
-    bool camOpen; 
-    Message * msgSend; 
+
+    bool camOpen;  // Variable pour vérifier si la caméra est ouverte avec succès
+    Message *msgSend;  // Pointeur pour envoyer des messages
+
     /**************************************************************************************/
-    /* The task openCameraTask starts here                                                  */
+    /* La tâche openCameraTask commence ici                                                */
     /**************************************************************************************/
     while (1) {
+        // Attente de la libération du sémaphore pour ouvrir la caméra
         rt_sem_p(&sem_openCamera, TM_INFINITE);
 
-        // ouverture de la camera           
-        rt_mutex_acquire(&mutex_cam, TM_INFINITE);
-        cam->Open();
-        camOpen = cam->IsOpen(); 
-        rt_mutex_release(&mutex_cam);  
-        
-        // On active l'envoi d'image periodique via le semaphore 
+        // Ouverture de la caméra avec une section critique protégée par un mutex
+        rt_mutex_acquire(&mutex_cam, TM_INFINITE);  // Acquisition du mutex pour accéder à la caméra
+        cam->Open();  // Ouverture de la caméra
+        camOpen = cam->IsOpen();  // Vérifie si la caméra s'est ouverte avec succès
+        rt_mutex_release(&mutex_cam);
+
+        // Active l'envoi périodique d'images en signalant le sémaphore
         rt_sem_v(&sem_flowImage);
-        
+
+        // Si la caméra s'ouvre correctement, rien ne se passe ici pour l'instant
         /*if (camOpen) {
-            
+            // Code pour traiter le cas où la caméra est ouverte avec succès
         } else {
-            // Envoi d'un message d'erreur en cas d'echec
+            // Envoi d'un message d'erreur en cas d'échec de l'ouverture de la caméra
             msgSend = new Message(MESSAGE_ANSWER_NACK);
-        } 
+        }
         WriteInQueue(&q_messageToMon, msgSend);*/
     }
 }
+
 
 /**
  * @brief Thread closing the camera
  */
 void Tasks::closeCameraTask(void *arg) {
 
+    // Affiche le début de l'exécution de la fonction avec son nom pour le débogage
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
-    // Synchronization barrier (waiting that all tasks are starting)
+
+    // Barrière de synchronisation pour s'assurer que toutes les tâches sont en cours de démarrage
     rt_sem_p(&sem_barrier, TM_INFINITE);
-    
-    Message *msgSend;
-    bool camClose; 
-    
+
+    Message *msgSend;  // Pointeur pour envoyer des messages
+    bool camClose;  // Variable pour vérifier si la caméra est fermée avec succès
+
     /**************************************************************************************/
-    /* The task closeCameraTask starts here                                                  */
+    /* La tâche closeCameraTask commence ici                                               */
     /**************************************************************************************/
-    
-    
+
     while (1) {
+        // Attend un signal pour fermer la caméra
         rt_sem_p(&sem_closeCamera, TM_INFINITE);
- 
-        // fermeture de la camera           
+
+        // Fermeture de la caméra avec une section critique protégée par un mutex
         rt_mutex_acquire(&mutex_cam, TM_INFINITE);
-        cam->Close();    
-        camClose = not(cam->IsOpen()); 
+        cam->Close();  // Commande pour fermer la caméra
+        camClose = not(cam->IsOpen());  // Vérifie si la caméra est fermée avec succès
         rt_mutex_release(&mutex_cam);
-        
+
+        // Envoie un message d'acquittement si la caméra s'est fermée correctement
         if (camClose) {
-            // Envoi du message d'acquittement
             msgSend = new Message(MESSAGE_ANSWER_ACK);
         } else {
-            // Envoi du message de non acquittement
+            // Envoie un message de non acquittement en cas d'échec de la fermeture
             msgSend = new Message(MESSAGE_ANSWER_NACK);
         }
-        WriteInQueue(&q_messageToMon, msgSend);
-        
-        rt_sem_p(&sem_flowImage, TM_INFINITE); // Permet d'arreter l'envoi periodique d'image
+        WriteInQueue(&q_messageToMon, msgSend);  // Écrit le message dans la file de messages
+
+        // Bloque le flot d'images
+        rt_sem_p(&sem_flowImage, TM_INFINITE);
     }
 }
+
 
 /**
  * @brief Thread sending images from the camera to the monitor
  */
 void Tasks::sendImageToMonitorTask(void *arg){
-    cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;   
-    // Synchronization barrier (waiting that all tasks are starting)
+    cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
+    // Barrière de synchronisation pour s'assurer que toutes les tâches sont en cours de démarrage
     rt_sem_p(&sem_barrier, TM_INFINITE);
-    
-    MessageImg * msgSend;
+
+    MessageImg *msgSend;  // Pointeur pour envoyer des messages contenant des images
     /**************************************************************************************/
-    /* The task sendImageToMonitor starts here                                            */
+    /* La tâche sendImageToMonitor commence ici                                            */
     /**************************************************************************************/
 
-    rt_task_set_periodic(NULL, TM_NOW, 100000000); // Cette tâche est périodique toutes les 100ms
+    // Cette tâche est périodique toutes les 100ms
+    rt_task_set_periodic(NULL, TM_NOW, 100000000);
 
-    while(1){
+    while (1) {
+        // Attend la prochaine période de 100ms
         rt_task_wait_period(NULL);
-        
-        rt_sem_p(&sem_flowImage, TM_INFINITE); 
+
+        // Attend un signal pour permettre l'envoi d'images
+        rt_sem_p(&sem_flowImage, TM_INFINITE);
         rt_mutex_acquire(&mutex_cam, TM_INFINITE);
-        if (cam->IsOpen()){
-            // Acquisition de l'image   
-            Img img = cam->Grab();            
-            
-            rt_mutex_acquire(&mutex_arenaOK, TM_INFINITE); 
-            if (arenaOK){
-                // Envoi de l'image avec le dessin de l'arene
+        if (cam->IsOpen()) {
+            // Acquisition de l'image de la caméra
+            Img img = cam->Grab();
+
+            rt_mutex_acquire(&mutex_arenaOK, TM_INFINITE);
+            if (arenaOK) {
+                // Si l'arène est validée, dessine l'arène sur l'image avant envoi
                 rt_mutex_acquire(&mutex_arena, TM_INFINITE);
                 img.DrawArena(arena);
                 msgSend = new MessageImg(MESSAGE_CAM_IMAGE, &img);
                 rt_mutex_release(&mutex_arena);
             } else {
-                // Envoi de l'image sans l'arene
-                msgSend = new MessageImg(MESSAGE_CAM_IMAGE,&img);; 
+                // Si l'arène n'est pas validée, envoie l'image sans dessin de l'arène
+                msgSend = new MessageImg(MESSAGE_CAM_IMAGE, &img);
             }
-            rt_mutex_release(&mutex_arenaOK);        
-            
+            rt_mutex_release(&mutex_arenaOK);
 
+            // Écrit le message contenant l'image dans la file de messages
             WriteInQueue(&q_messageToMon, msgSend);
         }
         rt_mutex_release(&mutex_cam);
-        rt_sem_v(&sem_flowImage); 
+        rt_sem_v(&sem_flowImage);  // Libère le sémaphore pour permettre l'envoi périodique d'images
     }
-
-
 }
-
-//RT_SEM sem_arenaAns;
 
 
 
@@ -911,89 +920,105 @@ void Tasks::sendImageToMonitorTask(void *arg){
  * @brief Thread managing the arena
  */
 void Tasks::manageArenaTask(void *arg){
+    // Affiche le début de l'exécution de la fonction avec son nom pour le débogage
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
-    
-    Img* last_image;
-    Arena a ;
-    MessageImg* msgImg;
-    // Synchronization barrier (waiting that all tasks are starting)
+
+    Img* last_image;  // Pointeur vers la dernière image capturée
+    Arena a;  // Objet Arena pour stocker l'arène détectée
+    MessageImg* msgImg;  // Pointeur pour envoyer des messages contenant des images
+    // Barrière de synchronisation pour s'assurer que toutes les tâches sont en cours de démarrage
     rt_sem_p(&sem_barrier, TM_INFINITE);
 
     /**************************************************************************************/
-    /* The task manageArenaTask starts here                                            */
+    /* La tâche manageArenaTask commence ici                                               */
     /**************************************************************************************/
 
-    rt_sem_p(&sem_searchArena, TM_INFINITE); // Cette tâche restera bloquée tant que l'on ne lance pas la recherche de l'arène
-    rt_sem_p(&sem_flowImage, TM_INFINITE); // Permet d'arreter l'envoi periodique d'image
-    
-    rt_mutex_acquire(&mutex_arenaOK, TM_INFINITE); 
-    arenaOK = false; 
-    rt_mutex_release(&mutex_arenaOK); 
-    
-    // Acquisition de la derniere image envoyee a la camera avanrt la demande de recherche d'arene
+    // Attend le signal pour lancer la recherche de l'arène
+    rt_sem_p(&sem_searchArena, TM_INFINITE);
+    // Arrêt de l'envoi périodique d'images
+    rt_sem_p(&sem_flowImage, TM_INFINITE);
+
+    // Initialisation de l'état de l'arène à non trouvé
+    rt_mutex_acquire(&mutex_arenaOK, TM_INFINITE);
+    arenaOK = false;
+    rt_mutex_release(&mutex_arenaOK);
+
+    // Acquisition de la dernière image capturée par la caméra avant la demande de recherche d'arène
     rt_mutex_acquire(&mutex_cam, TM_INFINITE);
     last_image = new Img(cam->Grab());
     rt_mutex_release(&mutex_cam);
-    
+
+    // Recherche de l'arène dans l'image capturée
     rt_mutex_acquire(&mutex_arena, TM_INFINITE);
-    arena=last_image->SearchArena();
+    arena = last_image->SearchArena();
     a = arena;
     rt_mutex_release(&mutex_arena);
-    
+
     if (!arena.IsEmpty()) {
-        cout << "Arena trouvee" << endl;
-        
-        // On dessine l'arene sur l'image de la camera que l'on envoie au moniteur
+        cout << "Arena trouvée" << endl;
+
+        // Dessine l'arène sur l'image capturée et envoie l'image au moniteur
         last_image->DrawArena(a);
         msgImg = new MessageImg(MESSAGE_CAM_IMAGE, last_image);
         WriteInQueue(&q_messageToMon, msgImg);
-        
-        rt_sem_p(&sem_arenaAns, TM_INFINITE); // On attend que l'utilisateur valide ou invalide l'arene
-        rt_mutex_acquire(&mutex_arenaOK, TM_INFINITE); 
-        if (arenaOK){
-            cout << "Arena confirmed" << endl; 
+
+        // Attend que l'utilisateur valide ou invalide l'arène
+        rt_sem_p(&sem_arenaAns, TM_INFINITE);
+        rt_mutex_acquire(&mutex_arenaOK, TM_INFINITE);
+        if (arenaOK) {
+            cout << "Arena confirmed" << endl;
         } else {
-            cout << "Arena infirmed" << endl; 
+            cout << "Arena infirmed" << endl;
         }
-        rt_mutex_release(&mutex_arenaOK);        
-        
-        // On libere le semaphore pour que l'envoi d'image reprend
+        rt_mutex_release(&mutex_arenaOK);
+
+        // Libère le sémaphore pour que l'envoi d'images reprenne
         rt_sem_v(&sem_flowImage);
-    }
-    else {
-        cout << "Arena not found" << endl; 
+    } else { // La recherche d'arène n'ayant rien donné, on affiche un message dans la console de lancement et on envoie un message de non acquittement
+        cout << "Arena not found" << endl;
         WriteInQueue(&q_messageToMon, new Message(MESSAGE_ANSWER_NACK));
     }
 }
 
+
 /**
- * Write a message in a given queue
- * @param queue Queue identifier
- * @param msg Message to be stored
+ * @brief Écrit un message dans une file de messages donnée
+ * @param queue Identifiant de la file de messages
+ * @param msg Message à stocker
  */
 void Tasks::WriteInQueue(RT_QUEUE *queue, Message *msg) {
-    int err;
-    if ((err = rt_queue_write(queue, (const void *) &msg, sizeof ((const void *) &msg), Q_NORMAL)) < 0) {
+    int err;  // Variable pour stocker les erreurs éventuelles
+
+    // Essaye d'écrire le message dans la file de messages
+    if ((err = rt_queue_write(queue, (const void *) &msg, sizeof((const void *) &msg), Q_NORMAL)) < 0) {
+        // Si une erreur survient, affiche un message d'erreur
         cerr << "Write in queue failed: " << strerror(-err) << endl << flush;
+        // Lance une exception en cas d'erreur
         throw std::runtime_error{"Error in write in queue"};
     }
 }
 
+
 /**
- * Read a message from a given queue, block if empty
- * @param queue Queue identifier
- * @return Message read
+ * @brief Lit un message depuis une file de messages donnée, bloque si vide
+ * @param queue Identifiant de la file de messages
+ * @return Message lu
  */
 Message *Tasks::ReadInQueue(RT_QUEUE *queue) {
-    int err;
-    Message *msg;
+    int err;  // Variable pour stocker les erreurs éventuelles
+    Message *msg;  // Pointeur pour stocker le message lu
 
-    if ((err = rt_queue_read(queue, &msg, sizeof ((void*) &msg), TM_INFINITE)) < 0) {
+    // Essaye de lire un message depuis la file de messages
+    if ((err = rt_queue_read(queue, &msg, sizeof((void*) &msg), TM_INFINITE)) < 0) {
+        // Si une erreur survient, affiche un message d'erreur
         cout << "Read in queue failed: " << strerror(-err) << endl << flush;
+        // Lance une exception en cas d'erreur
         throw std::runtime_error{"Error in read in queue"};
     }/** else {
+        // Affiche le message lu pour le débogage (actuellement commenté)
         cout << "@msg :" << msg << endl << flush;
     } /**/
 
+    // Retourne le message lu
     return msg;
 }

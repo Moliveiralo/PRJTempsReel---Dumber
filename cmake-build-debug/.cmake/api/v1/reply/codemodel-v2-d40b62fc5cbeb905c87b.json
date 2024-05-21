@@ -1,0 +1,60 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"jsonFile" : "directory-.-Debug-d0094a50bb2071803777.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.28"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "PRJTempsReel___Dumber",
+					"targetIndexes" : 
+					[
+						0
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "PRJTempsReel___Dumber::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-PRJTempsReel___Dumber-Debug-7936ceefce2fbfb9981f.json",
+					"name" : "PRJTempsReel___Dumber",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/maxim/OneDrive - insa-toulouse.fr/INSA/Cours/4A - AE/Semestre 2/Temps R\u00e9el/PRJTempsReel---Dumber/cmake-build-debug",
+		"source" : "C:/Users/maxim/OneDrive - insa-toulouse.fr/INSA/Cours/4A - AE/Semestre 2/Temps R\u00e9el/PRJTempsReel---Dumber"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 6
+	}
+}

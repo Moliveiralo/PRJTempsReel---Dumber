@@ -1,0 +1,301 @@
+cmake_minimum_required(VERSION 3.28)
+project(PRJTempsReel___Dumber)
+
+set(CMAKE_CXX_STANDARD 14)
+
+include_directories(software/chargeur/RTE)
+include_directories(software/chargeur/RTE/Device/STM32F103RB)
+include_directories(software/dumber3/Application)
+include_directories(software/dumber3/Application/Xbee-API)
+include_directories(software/dumber3/Core/Inc)
+include_directories(software/dumber3/Drivers/CMSIS)
+include_directories(software/dumber3/Drivers/CMSIS/Device)
+include_directories(software/dumber3/Drivers/CMSIS/Device/ST)
+include_directories(software/dumber3/Drivers/CMSIS/Device/ST/STM32L0xx)
+include_directories(software/dumber3/Drivers/CMSIS/Device/ST/STM32L0xx/Include)
+include_directories(software/dumber3/Drivers/CMSIS/Include)
+include_directories(software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc)
+include_directories(software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/Legacy)
+include_directories(software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2)
+include_directories(software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/include)
+include_directories(software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM0)
+include_directories(software/dumber3/TestsPlans)
+include_directories(software/raspberry/superviseur-robot)
+include_directories(software/raspberry/superviseur-robot/lib)
+include_directories(software/raspberry/superviseur-robot/lib/base64)
+include_directories(software/raspberry/superviseur-robot-dumber-pthread)
+include_directories(software/raspberry/superviseur-robot-dumber-pthread/lib)
+include_directories(software/raspberry/superviseur-robot-dumber-pthread/lib/base64)
+include_directories(software/robot/Libraries/CMSIS)
+include_directories(software/robot/Libraries/CMSIS/Device)
+include_directories(software/robot/Libraries/CMSIS/Device/ST)
+include_directories(software/robot/Libraries/CMSIS/Device/ST/STM32F10x)
+include_directories(software/robot/Libraries/CMSIS/Device/ST/STM32F10x/Include)
+include_directories(software/robot/Libraries/CMSIS/Include)
+include_directories(software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc)
+include_directories(software/robot/src)
+
+add_executable(PRJTempsReel___Dumber
+        software/chargeur/RTE/Device/STM32F103RB/RTE_Device.h
+        software/chargeur/RTE/Device/STM32F103RB/stm32f10x_conf.h
+        software/chargeur/RTE/Device/STM32F103RB/system_stm32f10x.c
+        software/chargeur/RTE/RTE_Components.h
+        software/chargeur/Appli.c
+        software/chargeur/retarget.c
+        software/dumber3/Application/Xbee-API/xbee.c
+        software/dumber3/Application/Xbee-API/xbee.h
+        software/dumber3/Application/application.c
+        software/dumber3/Application/application.h
+        software/dumber3/Application/battery.c
+        software/dumber3/Application/battery.h
+        software/dumber3/Application/commands.c
+        software/dumber3/Application/commands.h
+        software/dumber3/Application/config.h
+        software/dumber3/Application/leds.c
+        software/dumber3/Application/leds.h
+        software/dumber3/Application/messages.c
+        software/dumber3/Application/messages.h
+        software/dumber3/Application/motors.c
+        software/dumber3/Application/motors.h
+        software/dumber3/Application/panic.c
+        software/dumber3/Application/panic.h
+        software/dumber3/Application/xbee.c
+        software/dumber3/Application/xbee.h
+        software/dumber3/Core/Inc/FreeRTOSConfig.h
+        software/dumber3/Core/Inc/main.h
+        software/dumber3/Core/Inc/stm32l0xx_hal_conf.h
+        software/dumber3/Core/Inc/stm32l0xx_it.h
+        software/dumber3/Core/Src/freertos.c
+        software/dumber3/Core/Src/main.c
+        software/dumber3/Core/Src/stm32l0xx_hal_msp.c
+        software/dumber3/Core/Src/stm32l0xx_hal_timebase_tim.c
+        software/dumber3/Core/Src/stm32l0xx_it.c
+        software/dumber3/Core/Src/syscalls.c
+        software/dumber3/Core/Src/sysmem.c
+        software/dumber3/Core/Src/system_stm32l0xx.c
+        software/dumber3/Drivers/CMSIS/Device/ST/STM32L0xx/Include/stm32l071xx.h
+        software/dumber3/Drivers/CMSIS/Device/ST/STM32L0xx/Include/stm32l0xx.h
+        software/dumber3/Drivers/CMSIS/Device/ST/STM32L0xx/Include/system_stm32l0xx.h
+        software/dumber3/Drivers/CMSIS/Include/cmsis_armcc.h
+        software/dumber3/Drivers/CMSIS/Include/cmsis_armclang.h
+        software/dumber3/Drivers/CMSIS/Include/cmsis_compiler.h
+        software/dumber3/Drivers/CMSIS/Include/cmsis_gcc.h
+        software/dumber3/Drivers/CMSIS/Include/cmsis_iccarm.h
+        software/dumber3/Drivers/CMSIS/Include/cmsis_version.h
+        software/dumber3/Drivers/CMSIS/Include/core_armv8mbl.h
+        software/dumber3/Drivers/CMSIS/Include/core_armv8mml.h
+        software/dumber3/Drivers/CMSIS/Include/core_cm0.h
+        software/dumber3/Drivers/CMSIS/Include/core_cm0plus.h
+        software/dumber3/Drivers/CMSIS/Include/core_cm1.h
+        software/dumber3/Drivers/CMSIS/Include/core_cm23.h
+        software/dumber3/Drivers/CMSIS/Include/core_cm3.h
+        software/dumber3/Drivers/CMSIS/Include/core_cm33.h
+        software/dumber3/Drivers/CMSIS/Include/core_cm4.h
+        software/dumber3/Drivers/CMSIS/Include/core_cm7.h
+        software/dumber3/Drivers/CMSIS/Include/core_sc000.h
+        software/dumber3/Drivers/CMSIS/Include/core_sc300.h
+        software/dumber3/Drivers/CMSIS/Include/mpu_armv7.h
+        software/dumber3/Drivers/CMSIS/Include/mpu_armv8.h
+        software/dumber3/Drivers/CMSIS/Include/tz_context.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/Legacy/stm32_hal_legacy.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_adc.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_adc_ex.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_cortex.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_def.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_dma.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_exti.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_flash.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_flash_ex.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_flash_ramfunc.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_gpio.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_gpio_ex.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_i2c.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_i2c_ex.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_pwr.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_pwr_ex.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_rcc.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_rcc_ex.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_tim.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_tim_ex.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_uart.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_uart_ex.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_ll_adc.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_ll_bus.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_ll_cortex.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_ll_crs.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_ll_dma.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_ll_exti.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_ll_gpio.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_ll_lpuart.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_ll_pwr.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_ll_rcc.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_ll_system.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_ll_tim.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_ll_usart.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_ll_utils.h
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_adc.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_adc_ex.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_cortex.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_dma.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_exti.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_flash.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_flash_ex.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_flash_ramfunc.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_gpio.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_i2c.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_i2c_ex.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_pwr.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_pwr_ex.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_rcc.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_rcc_ex.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_tim.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_tim_ex.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_uart.c
+        software/dumber3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_uart_ex.c
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/include/croutine.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/include/deprecated_definitions.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/include/event_groups.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/include/list.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/include/message_buffer.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/include/mpu_prototypes.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/include/portable.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/include/queue.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/include/stack_macros.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/include/StackMacros.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/include/stream_buffer.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/include/task.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/include/timers.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM0/port.c
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM0/portmacro.h
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/croutine.c
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/event_groups.c
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/list.c
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/queue.c
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.c
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/tasks.c
+        software/dumber3/Middlewares/Third_Party/FreeRTOS/Source/timers.c
+        software/dumber3/TestsPlans/tests.c
+        software/dumber3/TestsPlans/tests.h
+        software/raspberry/superviseur-robot/lib/base64/base64.cpp
+        software/raspberry/superviseur-robot/lib/base64/base64.h
+        software/raspberry/superviseur-robot/lib/base64/test.cpp
+        software/raspberry/superviseur-robot/lib/camera.cpp
+        software/raspberry/superviseur-robot/lib/camera.h
+        software/raspberry/superviseur-robot/lib/commonitor.cpp
+        software/raspberry/superviseur-robot/lib/commonitor.h
+        software/raspberry/superviseur-robot/lib/comrobot.cpp
+        software/raspberry/superviseur-robot/lib/comrobot.h
+        software/raspberry/superviseur-robot/lib/img.cpp
+        software/raspberry/superviseur-robot/lib/img.h
+        software/raspberry/superviseur-robot/lib/messages.cpp
+        software/raspberry/superviseur-robot/lib/messages.h
+        software/raspberry/superviseur-robot/nbproject/private/c_standard_headers_indexer.c
+        software/raspberry/superviseur-robot/nbproject/private/cpp_standard_headers_indexer.cpp
+        software/raspberry/superviseur-robot/main.cpp
+        software/raspberry/superviseur-robot/tasks.cpp
+        software/raspberry/superviseur-robot/tasks.h
+        software/raspberry/superviseur-robot/wrapper.c
+        software/raspberry/superviseur-robot-dumber-pthread/lib/base64/base64.cpp
+        software/raspberry/superviseur-robot-dumber-pthread/lib/base64/base64.h
+        software/raspberry/superviseur-robot-dumber-pthread/lib/base64/test.cpp
+        software/raspberry/superviseur-robot-dumber-pthread/lib/camera.cpp
+        software/raspberry/superviseur-robot-dumber-pthread/lib/camera.h
+        software/raspberry/superviseur-robot-dumber-pthread/lib/commonitor.cpp
+        software/raspberry/superviseur-robot-dumber-pthread/lib/commonitor.h
+        software/raspberry/superviseur-robot-dumber-pthread/lib/comrobot.cpp
+        software/raspberry/superviseur-robot-dumber-pthread/lib/comrobot.h
+        software/raspberry/superviseur-robot-dumber-pthread/lib/img.cpp
+        software/raspberry/superviseur-robot-dumber-pthread/lib/img.h
+        software/raspberry/superviseur-robot-dumber-pthread/lib/messages.cpp
+        software/raspberry/superviseur-robot-dumber-pthread/lib/messages.h
+        software/raspberry/superviseur-robot-dumber-pthread/nbproject/private/c_standard_headers_indexer.c
+        software/raspberry/superviseur-robot-dumber-pthread/nbproject/private/cpp_standard_headers_indexer.cpp
+        software/raspberry/superviseur-robot-dumber-pthread/main.cpp
+        software/raspberry/superviseur-robot-dumber-pthread/tasks.cpp
+        software/raspberry/superviseur-robot-dumber-pthread/tasks.h
+        software/raspberry/superviseur-robot-dumber-pthread/tasks_pthread.cpp
+        software/raspberry/superviseur-robot-dumber-pthread/tasks_pthread.h
+        software/robot/Libraries/CMSIS/Device/ST/STM32F10x/Include/stm32f10x.h
+        software/robot/Libraries/CMSIS/Device/ST/STM32F10x/Include/system_stm32f10x.h
+        software/robot/Libraries/CMSIS/Include/arm_common_tables.h
+        software/robot/Libraries/CMSIS/Include/arm_math.h
+        software/robot/Libraries/CMSIS/Include/core_cm3.h
+        software/robot/Libraries/CMSIS/Include/core_cmFunc.h
+        software/robot/Libraries/CMSIS/Include/core_cmInstr.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/misc.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_adc.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_bkp.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_can.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_cec.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_crc.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_dac.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_dbgmcu.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_dma.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_exti.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_flash.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_fsmc.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_gpio.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_i2c.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_iwdg.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_pwr.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_rcc.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_rtc.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_sdio.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_spi.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_tim.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_usart.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/inc/stm32f10x_wwdg.h
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/misc.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_adc.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_bkp.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_can.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_cec.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_crc.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_dac.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_dbgmcu.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_dma.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_exti.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_flash.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_fsmc.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_gpio.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_i2c.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_iwdg.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_pwr.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_rcc.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_rtc.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_sdio.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_spi.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_tim.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_usart.c
+        software/robot/Libraries/STM32F10x_StdPeriph_Driver/src/stm32f10x_wwdg.c
+        software/robot/src/battery.c
+        software/robot/src/battery.h
+        software/robot/src/cmdManager.c
+        software/robot/src/cmdManager.h
+        software/robot/src/debug.c
+        software/robot/src/debug.h
+        software/robot/src/led.c
+        software/robot/src/led.h
+        software/robot/src/main.c
+        software/robot/src/motor.c
+        software/robot/src/motor.h
+        software/robot/src/stm32f10x_conf.h
+        software/robot/src/stm32f1xx_it.c
+        software/robot/src/stm32f1xx_it.h
+        software/robot/src/syscalls.c
+        software/robot/src/system_dumby.c
+        software/robot/src/system_dumby.h
+        software/robot/src/tiny_printf.c
+        software/robot/src/usart.c
+        software/robot/src/usart.h
+        software/robot/system/system_stm32f10x.c)
