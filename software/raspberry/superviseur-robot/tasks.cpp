@@ -36,6 +36,7 @@
 #define PRIORITY_TSTOPROBOT 23
 #define PRIORITY_TCHECKCOMROBOT 22
 
+
 /*
  * Some remarks:
  * 1- This program is mostly a template. It shows you how to create tasks, semaphore
@@ -295,15 +296,15 @@ void Tasks::Run() {
  * @brief Arrêt des tâches
  */
 void Tasks::Stop() {
-    monitor.Close();
-    robot.Close();
+    monitor.Close(); // Fermeture de la connexion avec le moniteur
+    robot.Close();   // Fermeture de la communication avec le robot
 }
 
 /**
  */
 void Tasks::Join() {
     cout << "Tasks synchronized" << endl << flush;
-    rt_sem_broadcast(&sem_barrier);
+    rt_sem_broadcast(&sem_barrier); // Libération du sémaphore de synchronisation des tâches
     pause();
 }
 
@@ -364,92 +365,96 @@ void Tasks::sendToMonitorTask(void* arg) {
  */
 void Tasks::receiveFromMonitorTask(void *arg) {
     Message *msgRcv;
-    
+
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
-    // Synchronization barrier (waiting that all tasks are starting)
+    // Synchronisation barrière (attente que toutes les tâches démarrent)
     rt_sem_p(&sem_barrier, TM_INFINITE);
-    
+
     /**************************************************************************************/
-    /* The task receiveFromMonitor starts here                                                */
+    /* La tâche receiveFromMonitor commence ici                                            */
     /**************************************************************************************/
-    rt_sem_p(&sem_serverOk, TM_INFINITE);
+    rt_sem_p(&sem_serverOk, TM_INFINITE); // Attendre que le serveur soit prêt
     cout << "Received message from monitor activated" << endl << flush;
 
     while (1) {
-        msgRcv = monitor.Read();
-        cout << "Rcv <= " << msgRcv->ToString() << endl << flush;
+        msgRcv = monitor.Read(); // Lire le message reçu depuis le moniteur
+        cout << "Rcv <= " << msgRcv->ToString() << endl << flush; // Afficher le message
 
         if (msgRcv->CompareID(MESSAGE_MONITOR_LOST)) {
+            // Si le message indique que la connexion au moniteur est perdue
             delete(msgRcv);
-            exit(-1);
+            exit(-1); // Quitter le programme
         } 
         else if (msgRcv->CompareID(MESSAGE_ROBOT_COM_OPEN)) {
-            rt_sem_v(&sem_openRobotCommunication);
+            // Si le message indique que la communication avec le robot doit être ouverte
+            rt_sem_v(&sem_openRobotCommunication); // Libérer le sémaphore d'ouverture de la comm avec le robot
         } 
         else if (msgRcv->CompareID(MESSAGE_ROBOT_START_WITHOUT_WD)) {
-            // Démarrer le robot sans watchdog
+            // Si le message indique de démarrer le robot sans watchdog
             rt_mutex_acquire(&mutex_watchdog, TM_INFINITE);
-            activateWatchdog = false;
+            activateWatchdog = false; // Désactiver le watchdog
             rt_mutex_release(&mutex_watchdog);
             cout << "Demarrage du robot sans watchdog" << endl;
-            rt_sem_v(&sem_startRobot);
+            rt_sem_v(&sem_startRobot); // Libérer le sémaphore pour démarrer le robot
         }
         else if (msgRcv->CompareID(MESSAGE_ROBOT_START_WITH_WD)) {
-            // Démarrer le robot avec watchdog
+            // Si le message indique de démarrer le robot avec watchdog
             rt_mutex_acquire(&mutex_watchdog, TM_INFINITE);
-            activateWatchdog = true;
+            activateWatchdog = true; // Activer le watchdog
             rt_mutex_release(&mutex_watchdog);
             cout << "Demarrage du robot avec watchdog" << endl;
-            rt_sem_v(&sem_startRobot);
+            rt_sem_v(&sem_startRobot); // Libérer le sémaphore pour démarrer le robot
         }
         else if (msgRcv->CompareID(MESSAGE_ROBOT_GO_FORWARD) ||
                 msgRcv->CompareID(MESSAGE_ROBOT_GO_BACKWARD) ||
                 msgRcv->CompareID(MESSAGE_ROBOT_GO_LEFT) ||
                 msgRcv->CompareID(MESSAGE_ROBOT_GO_RIGHT) ||
                 msgRcv->CompareID(MESSAGE_ROBOT_STOP)) {
-
+            // Si le message indique un mouvement du robot (avant, arrière, gauche, droite, ou stop)
             rt_mutex_acquire(&mutex_moveRobot, TM_INFINITE);
-            moveRobot = msgRcv->GetID();
+            moveRobot = msgRcv->GetID(); // Mettre à jour la commande de mouvement
             rt_mutex_release(&mutex_moveRobot);
         } 
         else if (msgRcv->CompareID(MESSAGE_ROBOT_BATTERY_GET)){
-            // Quand la case get batterie est coche, on passe a true la variable get batterie
-            //rt_sem_v(&sem_getBattery);
-            rt_mutex_acquire(&mutex_battery, TM_INFINITE);  
-            getBattery = true; 
-            rt_mutex_release(&mutex_battery); 
+            // Si le message demande d'obtenir l'état de la batterie
+            rt_mutex_acquire(&mutex_battery, TM_INFINITE);
+            getBattery = true; // Indiquer que le niveau de batterie doit être vérifié
+            rt_mutex_release(&mutex_battery);
         } 
         else if (msgRcv->CompareID(MESSAGE_CAM_OPEN)){
-            //Quand la case open camera est cochee, on libere le semaphore d'ouverture de camera
+            // Si le message demande l'ouverture de la caméra
             rt_sem_v(&sem_openCamera);
-            cout << "demande ouverture camera" << endl; 
-            
+            cout << "demande ouverture camera" << endl;
         } 
         else if (msgRcv->CompareID(MESSAGE_CAM_CLOSE)){
-            //Quand la case open camera est decochee, on libere le semaphore de fermeture de camera
+            // Si le message demande la fermeture de la caméra
             rt_sem_v(&sem_closeCamera);
-            cout << "demande fermeture camera" << endl; 
+            cout << "demande fermeture camera" << endl;
         }
         else if (msgRcv->CompareID(MESSAGE_CAM_ASK_ARENA)){
-            rt_sem_v(&sem_searchArena); 
+            // Si le message demande la recherche de l'arène
+            rt_sem_v(&sem_searchArena);
         }
         else if (msgRcv->CompareID(MESSAGE_CAM_ARENA_CONFIRM)){
-            cout << "arena confirmed" << endl; 
-            rt_mutex_acquire(&mutex_arenaOK, TM_INFINITE); 
-            arenaOK = true;
-            rt_mutex_release(&mutex_arenaOK); 
-            rt_sem_v(&sem_arenaAns); // il faut debloquer le semaphore apres
+            // Si le message confirme l'arène qui a été trouvée
+            cout << "arena confirmed" << endl;
+            rt_mutex_acquire(&mutex_arenaOK, TM_INFINITE);
+            arenaOK = true; // Marquer l'arène comme trouvée
+            rt_mutex_release(&mutex_arenaOK);
+            rt_sem_v(&sem_arenaAns); // Libérer le sémaphore de réponse
         }
         else if (msgRcv->CompareID(MESSAGE_CAM_ARENA_INFIRM)){
-            cout << "arena infirmed" << endl;  
-            rt_mutex_acquire(&mutex_arenaOK, TM_INFINITE); 
-            arenaOK = false;
-            rt_mutex_release(&mutex_arenaOK); 
-            rt_sem_v(&sem_arenaAns);
+            // Si le message infirme l'arène trouvée
+            cout << "arena infirmed" << endl;
+            rt_mutex_acquire(&mutex_arenaOK, TM_INFINITE);
+            arenaOK = false; // Marquer l'arène comme non validée
+            rt_mutex_release(&mutex_arenaOK);
+            rt_sem_v(&sem_arenaAns); // Libérer le sémaphore de réponse
         }
-        delete(msgRcv); // must be deleted manually, no consumer
+        delete(msgRcv); // Libérer la mémoire du message (doit être fait manuellement)
     }
 }
+
 
 /**
  * @brief Thread opening communication with the robot.
@@ -459,67 +464,77 @@ void Tasks::openRobotCommunication(void *arg) {
     int err;
 
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
-    // Synchronization barrier (waiting that all tasks are starting)
+    // Barrière de synchronisation (attente que toutes les tâches démarrent)
     rt_sem_p(&sem_barrier, TM_INFINITE);
     
     /**************************************************************************************/
-    /* The task openRobotCommunication starts here                                                  */
+    /* La tâche openRobotCommunication commence ici                                       */
     /**************************************************************************************/
     while (1) {
+        // Attendre le sémaphore indiquant l'ouverture de la communication avec le robot
         rt_sem_p(&sem_openRobotCommunication, TM_INFINITE);
         cout << "Open serial com (";
+
+        // Acquisition du mutex pour accéder à l'objet robot
         rt_mutex_acquire(&mutex_robot, TM_INFINITE);
-        status = robot.Open();
-        rt_mutex_release(&mutex_robot);
-        cout << status;
+        status = robot.Open(); // Tentative d'ouverture de la communication série avec le robot
+        rt_mutex_release(&mutex_robot); // Libération du mutex
+        cout << status; // Affichage du statut de l'opération d'ouverture
         cout << ")" << endl << flush;
 
-        Message * msgSend;
+        Message *msgSend;
         if (status < 0) {
+            // Si l'ouverture a échoué, créer un message NACK (Negative Acknowledgment)
             msgSend = new Message(MESSAGE_ANSWER_NACK);
         } else {
+            // Si l'ouverture a réussi, créer un message ACK (Acknowledgment)
             msgSend = new Message(MESSAGE_ANSWER_ACK);
         }
-        WriteInQueue(&q_messageToMon, msgSend); // msgSend will be deleted by sendToMon
+        // Envoyer le message dans la file de messages à destination du moniteur
+        // (msgSend sera supprimé par la fonction sendToMon)
+        WriteInQueue(&q_messageToMon, msgSend);
     }
 }
+
 
 void Tasks::closeRobotTask(void *arg) {
     int status;
     int com_error;
 
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
-    // Synchronization barrier (waiting that all tasks are starting)
+    // Barrière de synchronisation (attente que toutes les tâches démarrent)
     rt_sem_p(&sem_barrier, TM_INFINITE);
 
     /**************************************************************************************/
-    /* The task closeComRobot starts here                                                  */
+    /* La tâche closeComRobot commence ici                                                */
     /**************************************************************************************/
 
     while (1) {
+        // Attendre le sémaphore indiquant la fermeture de la communication avec le robot
         rt_sem_p(&sem_closeRobot, TM_INFINITE);
 
+        // Acquisition du mutex pour lire l'état des erreurs de communication avec le robot
         rt_mutex_acquire(&mutex_errorRobot, TM_INFINITE);
-        com_error=errorRobot;
-        rt_mutex_release(&mutex_errorRobot);
+        com_error = errorRobot; // Récupération de la valeur de l'erreur de communication
+        rt_mutex_release(&mutex_errorRobot); // Libération du mutex
 
+        // Acquisition du mutex pour accéder à l'objet robot
         rt_mutex_acquire(&mutex_robot, TM_INFINITE);
-        cout << "Close  com ("<<flush;
-        status = robot.Close();
-        rt_mutex_release(&mutex_robot);
-        cout << status;
+        cout << "Close com (" << flush;
+        status = robot.Close(); // Tentative de fermeture de la communication série avec le robot
+        rt_mutex_release(&mutex_robot); // Libération du mutex
+        cout << status; // Affichage du statut de l'opération de fermeture
         cout << ")" << endl << flush;
 
-
+        // Mise à jour de l'état indiquant que le robot n'est plus démarré
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
-        robotStarted = 0;
+        robotStarted = 0; // Marquer le robot comme arrêté
         rt_mutex_release(&mutex_robotStarted);
 
+        // Mise à jour de la commande de mouvement du robot pour arrêter le robot
         rt_mutex_acquire(&mutex_moveRobot, TM_INFINITE);
-        moveRobot=MESSAGE_ROBOT_STOP;
+        moveRobot = MESSAGE_ROBOT_STOP; // Marquer le robot comme étant en arrêt
         rt_mutex_release(&mutex_moveRobot);
-
-
     }
 }
 
@@ -529,66 +544,61 @@ void Tasks::closeRobotTask(void *arg) {
  */
 void Tasks::StartRobotTask(void *arg) {
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
-    // Synchronization barrier (waiting that all tasks are starting)
+    // Barrière de synchronisation (attente que toutes les tâches démarrent)
     rt_sem_p(&sem_barrier, TM_INFINITE);
     
     /**************************************************************************************/
-    /* The task startRobot starts here                                                    */
+    /* La tâche startRobot commence ici                                                   */
     /**************************************************************************************/
     while (1) {
-
-//        Message * msgSend;
-//        rt_sem_p(&sem_startRobot, TM_INFINITE);
-//        cout << "Start robot without watchdog (";
-//        rt_mutex_acquire(&mutex_robot, TM_INFINITE);
-//        msgSend = robot.Write(robot.StartWithoutWD());
-//        rt_mutex_release(&mutex_robot);
-//        cout << msgSend->GetID();
-//        cout << ")" << endl;
-//
-//        cout << "movementRobot answer: " << msgSend->ToString() << endl << flush;
-//        WriteInQueue(&q_messageToMon, msgSend);  // msgSend will be deleted by sendToMon
-//
-//        if (msgSend->GetID() == MESSAGE_ANSWER_ACK) {
-//            rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
-//            robotStarted = 1;
-//            rt_mutex_release(&mutex_robotStarted);
-//        }
         Message *msgSend;
 
         // Attendre que le sémaphore pour démarrer le robot soit disponible
         rt_sem_p(&sem_startRobot, TM_INFINITE);
 
+        // si le watchdog est désactivé
         if (activateWatchdog == false) {
             // Démarrer le robot sans watchdog
             cout << "Start robot without watchdog (";
+            // Acquisition du mutex pour accéder à l'objet robot en toute sécurité
             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+            // Envoi de la commande pour démarrer le robot sans watchdog et récupération de la réponse
             msgSend = robot.Write(robot.StartWithoutWD());
+            // Libération du mutex après l'opération
             rt_mutex_release(&mutex_robot);
-        } else {
+        } else { // Sinon
             // Démarrer le robot avec watchdog
             cout << "Start robot with watchdog (";
+            // Acquisition du mutex pour accéder à l'objet robot en toute sécurité
             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
+            // Envoi de la commande pour démarrer le robot avec watchdog et récupération de la réponse
             msgSend = robot.Write(robot.StartWithWD());
+            // Libération du mutex après l'opération
             rt_mutex_release(&mutex_robot);
         }
 
-        // Afficher l'ID et la réponse du mouvement
+        // Affichage de l'ID du message reçu du robot
         cout << msgSend->GetID();
         cout << ")" << endl;
         cout << "MovementRobot answer: " << msgSend->ToString() << endl << flush;
 
-        // Envoyer le message dans la file de messages (msgSend sera supprimé par sendToMon)
+        // Envoi du message dans la file de messages destinée au moniteur
+        // (msgSend sera supprimé par la fonction sendToMon après traitement)
         WriteInQueue(&q_messageToMon, msgSend);
 
-        // Si la réponse est un accusé de réception, mettre à jour l'état du robot comme démarré
+        // Vérifie si la réponse est un accusé de réception (ACK)
         if (msgSend->GetID() == MESSAGE_ANSWER_ACK) {
+            // Acquisition du mutex pour mettre à jour l'état du robot en toute sécurité
             rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+            // Met à jour l'état indiquant que le robot est démarré
             robotStarted = 1;
+            // Libération du mutex après la mise à jour
             rt_mutex_release(&mutex_robotStarted);
         }
     }
 }
+
+
 
 /**
  * @brief Thread handling control of the robot.
@@ -598,82 +608,94 @@ void Tasks::moveRobotTask(void *arg) {
     int cpmoveRobot;
     
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
-    // Synchronization barrier (waiting that all tasks are starting)
+    // Barrière de synchronisation (attente que toutes les tâches démarrent)
     rt_sem_p(&sem_barrier, TM_INFINITE);
     
     /**************************************************************************************/
-    /* The task starts here                                                               */
+    /* La tâche commence ici                                                              */
     /**************************************************************************************/
+    
+    // Définir la tâche comme périodique avec une période de 100 ms
     rt_task_set_periodic(NULL, TM_NOW, 100000000);
     
-
     while (1) {
+        // Attendre la prochaine période
         rt_task_wait_period(NULL);
+        
         cout << "Periodic movement update";
+        
+        // Récupération du statut de démarrage du robot
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         rs = robotStarted;
         rt_mutex_release(&mutex_robotStarted);
+        
         if (rs == 1) {
             rt_mutex_acquire(&mutex_moveRobot, TM_INFINITE);
             cpmoveRobot = moveRobot;
             rt_mutex_release(&mutex_moveRobot);
             
+            // Afficher la commande de mouvement actuelle
             cout << " moveRobot: " << cpmoveRobot;
             
             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
-            robot.Write(new Message((MessageID)cpmoveRobot));
+            robot.Write(new Message((MessageID)cpmoveRobot)); // Envoi de la commande
             rt_mutex_release(&mutex_robot);
         }
+        
         cout << endl << flush;
     }
 }
 
+
 /**
 * @brief Thread handling the displaying of the battery level
 */
-void Tasks::manageBatteryLevelTask(void *arg){    
-    
+void Tasks::manageBatteryLevelTask(void *arg) {    
     Message *msgSend, *msgSend2; 
     int robotS; 
     bool getB; 
     
     cout << "Start " << __PRETTY_FUNCTION__ << endl << flush;
-    // Synchronization barrier (waiting that all tasks are starting)
+    // Barrière de synchronisation (attente que toutes les tâches démarrent)
     rt_sem_p(&sem_barrier, TM_INFINITE);
 
     /**************************************************************************************/
-    /* The task starts here                                                               */
+    /* La tâche commence ici                                                              */
     /**************************************************************************************/
-    rt_task_set_periodic(NULL, TM_NOW, 500000000); // Tache periodique de 500ms
+    rt_task_set_periodic(NULL, TM_NOW, 500000000); // Tâche périodique de 500ms
 
     while (1) {
+        // Attendre la prochaine période (500 ms)
         rt_task_wait_period(NULL);
         cout << "Periodic update of the battery level" << endl;
         
+        // Vérifier si le robot est démarré
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
-        robotS=robotStarted; 
+        robotS = robotStarted; 
         rt_mutex_release(&mutex_robotStarted);
         
+        // Vérifier si la demande de récupération du niveau de batterie est active
         rt_mutex_acquire(&mutex_battery, TM_INFINITE);
-        getB=getBattery;
+        getB = getBattery;
         rt_mutex_release(&mutex_battery);
         
         cout << "robotS " << robotS << " -- getB " << getB << endl;
         
-        // Si le robot est demarre et la case getBattery cochee
-        if (robotS && getB){
-            // On recupere le niveau de la batterie du robot
+        // Si le robot est démarré et la demande de récupération de la batterie est active
+        if (robotS && getB) {
+            // Récupérer le niveau de la batterie du robot
             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
             msgSend = robot.GetBattery();
             msgSend2 = robot.Write(msgSend);
             rt_mutex_release(&mutex_robot);
             
-            // On envoie le niveau de batterie au moniteur
+            // Envoyer le niveau de batterie au moniteur
             WriteInQueue(&q_messageToMon, msgSend2);
             
             cout << msgSend2 << endl;
             
-            // On remet a false get battery (permet de ne prendre en compte le decochage)
+            // Remettre la demande de récupération de la batterie à false
+            // Cela permet de ne pas prendre en compte les demandes répétées non décochées
             rt_mutex_acquire(&mutex_battery, TM_INFINITE);
             getBattery = false;
             rt_mutex_release(&mutex_battery);
@@ -688,63 +710,72 @@ void Tasks::manageBatteryLevelTask(void *arg){
 void Tasks::CheckRobotTask(void *arg) {
     bool rs, wd;
     int err_cmp = 0;
-
-    Message * status;
+    Message *status;
 
     cout << "Start CheckRobotTask" << __PRETTY_FUNCTION__ << endl << flush;
-    // Synchronization barrier (waiting that all tasks are starting)
+    // Barrière de synchronisation (attente que toutes les tâches démarrent)
     rt_sem_p(&sem_barrier, TM_INFINITE);
 
     /**************************************************************************************/
-    /* The task starts here                                                               */
+    /* La tâche commence ici                                                              */
     /**************************************************************************************/
-    rt_task_set_periodic(NULL, TM_NOW, 1000000);
-
+    rt_task_set_periodic(NULL, TM_NOW, 100000000); // Tâche périodique de 100ms
 
     while (1) {
+        // Attendre la prochaine période (100 ms)
         rt_task_wait_period(NULL);
 
+        // Vérifier si le robot est démarré
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         rs = robotStarted;
         rt_mutex_release(&mutex_robotStarted);
 
+        // Vérifier si le watchdog est activé
         rt_mutex_acquire(&mutex_watchdog, TM_INFINITE);
         wd = activateWatchdog;
         rt_mutex_release(&mutex_watchdog);
 
+        // Si le robot est démarré et le watchdog activé
         if (rs && wd) {
-
+            // Envoyer un ping au robot pour vérifier sa réponse
             rt_mutex_acquire(&mutex_robot, TM_INFINITE);
             status = robot.Write(new Message(MESSAGE_ROBOT_PING));
             rt_mutex_release(&mutex_robot);
 
-            if (err_cmp >=3) {
-                err_cmp=0;
+            // Si plus de 3 erreurs de communication consécutives
+            if (err_cmp >= 3) {
+                err_cmp = 0;
                 cout << "------Message : The communication with the robot has ended.------" << endl;
+
+                // Mettre à jour l'état d'erreur de la communication
                 rt_mutex_acquire(&mutex_errorRobot, TM_INFINITE);
                 errorRobot = 1;
                 rt_mutex_release(&mutex_errorRobot);
 
+                // Mettre à jour l'état du robot comme arrêté
                 rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
                 robotStarted = 0;
                 rt_mutex_release(&mutex_robotStarted);
 
                 cout << "------Message : Closing the communication with the robot------" << endl;
+                // Libérer le sémaphore pour fermer la communication avec le robot
                 rt_sem_v(&sem_closeRobot);
+                // Envoyer un message d'erreur de communication au moniteur
                 WriteInQueue(&q_messageToMon, new Message(MESSAGE_ANSWER_COM_ERROR));
             }
+            // Si une erreur de communication est détectée
             else if (status->CompareID(MESSAGE_ANSWER_COM_ERROR)) {
                 err_cmp++;
-                cout << " status :  " << status->GetID()<< endl;
+                cout << " status :  " << status->GetID() << endl;
                 cout << " err_cmp: " << err_cmp << endl;
                 cout << " errorRobot :" << errorRobot << endl;
-                cout << " rs : " <<robotStarted << endl << flush;
+                cout << " rs : " << robotStarted << endl << flush;
             }
+            // Si le ping réussit, réinitialiser le compteur d'erreurs
             else {
-                err_cmp=0;
+                err_cmp = 0;
                 cout << " err_cmp: " << err_cmp << endl;
             }
-
         }
     }
 }
@@ -759,19 +790,30 @@ void Tasks::openCameraTask(void *arg) {
     // Synchronization barrier (waiting that all tasks are starting)
     rt_sem_p(&sem_barrier, TM_INFINITE);
     
+    bool camOpen; 
+    Message * msgSend; 
     /**************************************************************************************/
     /* The task openCameraTask starts here                                                  */
     /**************************************************************************************/
     while (1) {
         rt_sem_p(&sem_openCamera, TM_INFINITE);
-        cout << "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" << endl;
+
         // ouverture de la camera           
         rt_mutex_acquire(&mutex_cam, TM_INFINITE);
         cam->Open();
+        camOpen = cam->IsOpen(); 
         rt_mutex_release(&mutex_cam);  
         
         // On active l'envoi d'image periodique via le semaphore 
-        rt_sem_v(&sem_flowImage); 
+        rt_sem_v(&sem_flowImage);
+        
+        /*if (camOpen) {
+            
+        } else {
+            // Envoi d'un message d'erreur en cas d'echec
+            msgSend = new Message(MESSAGE_ANSWER_NACK);
+        } 
+        WriteInQueue(&q_messageToMon, msgSend);*/
     }
 }
 
@@ -784,6 +826,9 @@ void Tasks::closeCameraTask(void *arg) {
     // Synchronization barrier (waiting that all tasks are starting)
     rt_sem_p(&sem_barrier, TM_INFINITE);
     
+    Message *msgSend;
+    bool camClose; 
+    
     /**************************************************************************************/
     /* The task closeCameraTask starts here                                                  */
     /**************************************************************************************/
@@ -794,8 +839,20 @@ void Tasks::closeCameraTask(void *arg) {
  
         // fermeture de la camera           
         rt_mutex_acquire(&mutex_cam, TM_INFINITE);
-        cam->Close();         
+        cam->Close();    
+        camClose = not(cam->IsOpen()); 
         rt_mutex_release(&mutex_cam);
+        
+        if (camClose) {
+            // Envoi du message d'acquittement
+            msgSend = new Message(MESSAGE_ANSWER_ACK);
+        } else {
+            // Envoi du message de non acquittement
+            msgSend = new Message(MESSAGE_ANSWER_NACK);
+        }
+        WriteInQueue(&q_messageToMon, msgSend);
+        
+        rt_sem_p(&sem_flowImage, TM_INFINITE); // Permet d'arreter l'envoi periodique d'image
     }
 }
 
