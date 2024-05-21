@@ -808,17 +808,14 @@ void Tasks::openCameraTask(void *arg) {
         camOpen = cam->IsOpen();  // Vérifie si la caméra s'est ouverte avec succès
         rt_mutex_release(&mutex_cam);
 
-        // Active l'envoi périodique d'images en signalant le sémaphore
-        rt_sem_v(&sem_flowImage);
-
-        // Si la caméra s'ouvre correctement, rien ne se passe ici pour l'instant
-        /*if (camOpen) {
-            // Code pour traiter le cas où la caméra est ouverte avec succès
+        if (camOpen) {
+            // Active l'envoi périodique d'images en signalant le sémaphore
+            rt_sem_v(&sem_flowImage);
         } else {
             // Envoi d'un message d'erreur en cas d'échec de l'ouverture de la caméra
             msgSend = new Message(MESSAGE_ANSWER_NACK);
         }
-        WriteInQueue(&q_messageToMon, msgSend);*/
+        WriteInQueue(&q_messageToMon, msgSend);
     }
 }
 
