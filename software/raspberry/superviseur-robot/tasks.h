@@ -69,7 +69,7 @@ private:
     
     int robotStarted = 0; // Permet de savoir si le robot est démarré ou non
     int moveRobot = MESSAGE_ROBOT_STOP; // Contient l'instruction à envoyer au robot
-    int errorRobot = 0; // Compteur du nombre d'erreurs consécutives dans la communication avec le robot
+    bool errorRobot = 0; // Compteur du nombre d'erreurs consécutives dans la communication avec le robot
     
     bool getBattery=false; // Permet de savoir si on doit acquérir le niveau de batterie du robot
     
